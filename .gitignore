@@ -3,3 +3,9 @@ node_modules/
 dist/
 *.log
 .DS_Store
+
+# Local MongoDB data directories
+backend/data/
+backend/db/
+~/data/
+
