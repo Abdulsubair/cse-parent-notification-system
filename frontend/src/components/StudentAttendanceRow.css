@@ -1,0 +1,146 @@
+.student-attendance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  gap: 15px;
+}
+
+.student-attendance-row:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateX(2px);
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.student-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.student-details h4 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-details p {
+  margin: 3px 0 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attendance-options {
+  display: flex;
+  gap: 10px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.radio-label input[type="radio"] {
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.radio-text {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.radio-text.present {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.radio-label input[type="radio"]:checked + .radio-text.present {
+  background: rgba(34, 197, 94, 0.25);
+  font-weight: 700;
+}
+
+.radio-text.absent {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.radio-label input[type="radio"]:checked + .radio-text.absent {
+  background: rgba(239, 68, 68, 0.25);
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .student-attendance-row {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .student-info {
+    width: 100%;
+  }
+
+  .attendance-options {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 600px) {
+  .student-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .student-details h4 {
+    font-size: 13px;
+  }
+
+  .student-details p {
+    font-size: 11px;
+  }
+
+  .radio-text {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+
+  .attendance-options {
+    gap: 8px;
+  }
+}
