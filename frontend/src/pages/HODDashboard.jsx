@@ -572,12 +572,6 @@ function HODDashboard({ user, token, onLogout }) {
             🏫 Classes & Sections
           </button>
           <button
-            className={`nav-tab ${activeTab === "staff" ? "active" : ""}`}
-            onClick={() => setActiveTab("staff")}
-          >
-            👨‍🏫 Staff Management
-          </button>
-          <button
             className={`nav-tab ${activeTab === "students" ? "active" : ""}`}
             onClick={() => setActiveTab("students")}
           >
@@ -731,71 +725,7 @@ function HODDashboard({ user, token, onLogout }) {
             </div>
           )}
 
-          {/* TAB 4: STAFF MANAGEMENT */}
-          {activeTab === "staff" && (
-            <div className="tab-pane">
-              <h3>👨‍🏫 CSE Staff & Faculty Accounts</h3>
-
-              <form onSubmit={handleAddStaff} className="grid-form">
-                <div className="form-item">
-                  <label>Staff Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Dr. Subair"
-                    value={newStaffName}
-                    onChange={(e) => setNewStaffName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-item">
-                  <label>Login Username</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. subair_cse"
-                    value={newStaffUsername}
-                    onChange={(e) => setNewStaffUsername(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-item">
-                  <label>Password</label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={newStaffPassword}
-                    onChange={(e) => setNewStaffPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <button type="submit" className="add-btn grid-btn">+ Create Staff Account</button>
-              </form>
-
-              <div className="table-responsive margin-top-2">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Staff Name</th>
-                      <th>Username</th>
-                      <th>Role</th>
-                      <th>Account Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {staffList.map((st) => (
-                      <tr key={st._id}>
-                        <td><strong>{st.name}</strong></td>
-                        <td><code>{st.username}</code></td>
-                        <td>CSE Faculty</td>
-                        <td><span className="badge badge-success">Active</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: STUDENT MANAGEMENT */}
+          {/* TAB: STUDENT MANAGEMENT */}
           {activeTab === "students" && (
             <div className="tab-pane">
               <div className="tab-header-flex">
