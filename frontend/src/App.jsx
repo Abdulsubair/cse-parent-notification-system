@@ -92,38 +92,10 @@ function App() {
   // If user is authenticated
   if (user) {
     if (viewMode === "staff") {
-      return (
-        <div>
-          {user.role === "hod" && (
-            <div style={{ background: "#1e1b4b", padding: "0.5rem 1rem", textAlign: "center", color: "#a5b4fc", fontSize: "0.85rem", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-              <span>⚙️ HOD Mode: Viewing Staff Attendance Entry Portal</span>
-              <button 
-                onClick={() => setViewMode("hod")}
-                style={{ marginLeft: "1rem", background: "#6366f1", color: "white", padding: "0.2rem 0.6rem", borderRadius: "4px", fontSize: "0.75rem", fontWeight: "bold" }}
-              >
-                Switch Back to HOD Admin Dashboard →
-              </button>
-            </div>
-          )}
-          <StaffPage user={user} token={token} onLogout={handleLogout} />
-        </div>
-      );
+      return <StaffPage user={user} token={token} onLogout={handleLogout} />;
     }
 
-    return (
-      <div>
-        <div style={{ background: "#064e3b", padding: "0.5rem 1rem", textAlign: "center", color: "#6ee7b7", fontSize: "0.85rem", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-          <span>🛡️ HOD Admin Portal</span>
-          <button 
-            onClick={() => setViewMode("staff")}
-            style={{ marginLeft: "1rem", background: "#10b981", color: "white", padding: "0.2rem 0.6rem", borderRadius: "4px", fontSize: "0.75rem", fontWeight: "bold" }}
-          >
-            Open Staff Attendance Portal 📚
-          </button>
-        </div>
-        <HODDashboard user={user} token={token} onLogout={handleLogout} />
-      </div>
-    );
+    return <HODDashboard user={user} token={token} onLogout={handleLogout} />;
   }
 
   // Unauthenticated Views: landing, staff-login, hod-login

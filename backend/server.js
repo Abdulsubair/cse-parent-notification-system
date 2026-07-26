@@ -77,7 +77,7 @@ app.use("/api/students", authMiddleware, studentRoutes);
 app.use("/api/master", authMiddleware, masterRoutes);
 
 // ---------------------------------------------------------------------------
-// Seed default users if they don't exist
+// Seed default users, sections & initial master data if empty
 // ---------------------------------------------------------------------------
 const seedDefaultUsers = async () => {
   try {
@@ -114,8 +114,38 @@ const seedDefaultUsers = async () => {
       });
       console.log("✅ Default Staff user created (username: staff_cse, password: Staff@2026)");
     }
+
+    // Seed Academic Years if empty
+    const ayCount = await AcademicYear.countDocuments();
+    if (ayCount === 0) {
+      await AcademicYear.insertMany([
+        { yearRange: "2026–2027", isCurrent: true },
+        { yearRange: "2025–2026", isCurrent: false },
+        { yearRange: "2027–2028", isCurrent: false },
+      ]);
+      console.log("✅ Default Academic Years seeded");
+    }
+
+    // Seed Sections (CSE A and CSE B ONLY) if empty
+    const secCount = await Section.countDocuments();
+    if (secCount === 0) {
+      await Section.insertMany([
+        { year: "Second Year", sectionName: "CSE A" },
+        { year: "Second Year", sectionName: "CSE B" },
+        { year: "Third Year", sectionName: "CSE A" },
+        { year: "Third Year", sectionName: "CSE B" },
+        { year: "Final Year", sectionName: "CSE A" },
+        { year: "Final Year", sectionName: "CSE B" },
+      ]);
+      console.log("✅ Default Sections (CSE A & CSE B) seeded");
+    }
+
+    // Ensure any legacy CSD section is removed or renamed to CSE B
+    await Section.deleteMany({ sectionName: { $regex: /CSD/i } });
+    await Student.updateMany({ section: { $regex: /CSD/i } }, { section: "CSE B" });
+
   } catch (error) {
-    console.error("❌ Error seeding default users:", error.message);
+    console.error("❌ Error seeding default users/master data:", error.message);
   }
 };
 

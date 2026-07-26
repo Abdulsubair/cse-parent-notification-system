@@ -702,7 +702,7 @@ function HODDashboard({ user, token, onLogout }) {
                 </select>
                 <input
                   type="text"
-                  placeholder="Section Name (e.g. CSE C)"
+                  placeholder="Section Name (e.g. CSE B)"
                   value={newSecName}
                   onChange={(e) => setNewSecName(e.target.value)}
                   required
