@@ -46,15 +46,22 @@ function App() {
   }, [user, token]);
 
   const handleLogin = async ({ username, password }) => {
-    const response = await fetch(`${API_BASE}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, password }),
-    });
+    let response;
+    try {
+      response = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+    } catch {
+      throw new Error(
+        `Cannot reach the server at ${API_BASE}. Please try again in a moment.`
+      );
+    }
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data.message || "Invalid credentials");
     }
