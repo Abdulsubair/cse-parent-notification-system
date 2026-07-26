@@ -23,10 +23,11 @@ app.use(express.json());
 const mongoUri =
   process.env.ATLAS_MONGODB_URI ||
   process.env.MONGODB_URI ||
-  "mongodb://127.0.0.1:27017/cse-parent-notification";
+  "mongodb+srv://asubair383_db_user:CSEParentDB2026Secure1430@cse-parent-db.1hdsq5d.mongodb.net/cse-parent-notification?retryWrites=true&w=majority";
 
-console.log("MongoDB URI configured:", mongoUri ? "Yes" : "No");
+console.log("MongoDB URI configured:", mongoUri.includes("mongodb+srv") ? "Atlas Cloud DB" : "Local DB");
 console.log("Environment check:", {
+  ATLAS_MONGODB_URI: !!process.env.ATLAS_MONGODB_URI,
   MONGODB_URI: !!process.env.MONGODB_URI,
   JWT_SECRET: !!process.env.JWT_SECRET,
   TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
