@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import StudentAttendanceRow from "./StudentAttendanceRow";
 import "./AttendanceForm.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "https://cse-parent-notification-system.vercel.app";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://cse-parent-notification-system.onrender.com";
 
 function AttendanceForm({ selectedClass, onSuccess }) {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);

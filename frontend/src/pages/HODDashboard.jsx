@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./HODDashboard.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "https://cse-parent-notification-system.vercel.app";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://cse-parent-notification-system.onrender.com";
 
 // PDF.js dynamic CDN loader
 const loadPdfJs = () => {
