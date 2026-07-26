@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./StaffPage.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://cse-parent-notification-system.vercel.app";
 
 function StaffPage({ user, token, onLogout }) {
   const [academicYears, setAcademicYears] = useState(["2026–2027", "2025–2026", "2027–2028"]);

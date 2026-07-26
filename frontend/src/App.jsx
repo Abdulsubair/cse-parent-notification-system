@@ -6,7 +6,7 @@ import StaffPage from "./pages/StaffPage";
 import HODDashboard from "./pages/HODDashboard";
 import "./App.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || "https://cse-parent-notification-system.vercel.app";
 
 function App() {
   const [user, setUser] = useState(() => {
