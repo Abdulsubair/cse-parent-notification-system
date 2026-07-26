@@ -199,10 +199,20 @@ function StaffPage({ user, token, onLogout }) {
       doc.text(`Absent :  ${absentCount}`, pageW / 2 - 10, metaY + 12);
 
       // ── Attendance Table ──
+      const isPhoneNumber = (val) =>
+        typeof val === "string" && val.replace(/\D/g, "").length >= 8 && /^\d[\d\s\-+().]{6,}$/.test(val.trim());
+
       const tableRows = students.map((st, idx) => {
         const status = attendance[st._id] || "Present";
-        const parentName = st.parentId?.name || "—";
+
+        // Parent name: never show a phone number — if the stored value looks like
+        // a mobile number (caused by an older upload bug), show "—" instead.
+        const rawName = st.parentId?.name || "";
+        const parentName = rawName && !isPhoneNumber(rawName) ? rawName : "—";
+
+        // Parent mobile: prefer parentId.mobileNumber, fall back to st.phone
         const parentMobile = st.parentId?.mobileNumber || st.phone || "—";
+
         return [idx + 1, st.registerNumber, st.name, parentName, parentMobile, status];
       });
 
