@@ -188,34 +188,97 @@ function HODDashboard({ user, token, onLogout }) {
         if (rows.length > 0) {
           const headerRow = rows[0].map((cell) => String(cell).toLowerCase().trim());
           let regIdx = -1, nameIdx = -1, parentIdx = -1, mobileIdx = -1;
+
           headerRow.forEach((cell, idx) => {
-            if ((cell.includes("reg") || cell.includes("roll") || cell.includes("id")) && regIdx === -1) regIdx = idx;
-            else if (cell.includes("student") && cell.includes("name")) nameIdx = idx;
-            else if (cell === "name" && nameIdx === -1) nameIdx = idx;
-            else if (cell.includes("parent") || cell.includes("father") || cell.includes("guardian")) parentIdx = idx;
-            else if (cell.includes("mobile") || cell.includes("phone") || cell.includes("contact")) mobileIdx = idx;
+            const c = String(cell).toLowerCase().trim();
+
+            // 1. Mobile/Phone/Contact column check FIRST!
+            if (
+              mobileIdx === -1 &&
+              (c.includes("mobile") || c.includes("phone") || c.includes("contact") || c.includes("whatsapp"))
+            ) {
+              mobileIdx = idx;
+            }
+            // 2. Register Number / Roll No / ID check
+            else if (
+              regIdx === -1 &&
+              (c.includes("reg") || c.includes("roll") || c.includes("registration") || c.includes("student id") || c === "id") &&
+              !c.includes("guid")
+            ) {
+              regIdx = idx;
+            }
+            // 3. Parent Name / Father Name / Mother Name / Guardian Name check
+            else if (
+              parentIdx === -1 &&
+              (c.includes("parent") || c.includes("father") || c.includes("mother") || c.includes("guardian")) &&
+              !c.includes("mobile") &&
+              !c.includes("phone") &&
+              !c.includes("contact") &&
+              !c.includes("number")
+            ) {
+              parentIdx = idx;
+            }
+            // 4. Student Name check
+            else if (
+              nameIdx === -1 &&
+              (c.includes("student") || c === "name" || c.includes("candidate") || c.includes("student name"))
+            ) {
+              nameIdx = idx;
+            }
           });
+
           const startIndex = (regIdx !== -1 || nameIdx !== -1 || mobileIdx !== -1) ? 1 : 0;
           for (let i = startIndex; i < rows.length; i++) {
             const row = rows[i];
             if (!row || row.length === 0) continue;
+
             let registerNumber = regIdx !== -1 && row[regIdx] ? String(row[regIdx]).trim() : "";
             let name = nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : "";
             let parentName = parentIdx !== -1 && row[parentIdx] ? String(row[parentIdx]).trim() : "";
             let mobileNumber = mobileIdx !== -1 && row[mobileIdx] ? String(row[mobileIdx]).trim() : "";
+
+            // Fallback matching if headers were missing or ambiguous
             if (!registerNumber || !mobileNumber || !name) {
               row.forEach((cell) => {
                 const cellStr = String(cell).trim();
-                if (/^\d{10}$/.test(cellStr) && !mobileNumber) mobileNumber = cellStr;
-                else if (/^[a-zA-Z0-9-]{5,15}$/.test(cellStr) && !registerNumber) registerNumber = cellStr;
-                else if (/^[a-zA-Z\s.]{3,40}$/.test(cellStr)) {
+                const digits = cellStr.replace(/\D/g, "");
+
+                // 10-digit mobile number
+                if (digits.length === 10 && !mobileNumber) {
+                  mobileNumber = digits;
+                }
+                // Alphanumeric Register Number
+                else if (/^[a-zA-Z0-9-]{5,15}$/.test(cellStr) && !/^\d{10}$/.test(digits) && !registerNumber) {
+                  registerNumber = cellStr;
+                }
+                // Text Names
+                else if (/^[a-zA-Z\s.]{2,50}$/.test(cellStr) && !/^(male|female|father|mother|guardian)$/i.test(cellStr)) {
                   if (!name) name = cellStr;
-                  else if (!parentName) parentName = cellStr;
+                  else if (!parentName && cellStr !== name) parentName = cellStr;
                 }
               });
             }
+
+            // Clean mobileNumber (must be 10 digits)
+            if (mobileNumber) {
+              mobileNumber = mobileNumber.replace(/\D/g, "");
+              if (mobileNumber.length > 10) mobileNumber = mobileNumber.slice(-10);
+            }
+
+            // Ensure parentName is NEVER a phone number
+            if (parentName && /^\d+$/.test(parentName.replace(/\D/g, ""))) {
+              parentName = "";
+            }
+
             if (registerNumber && mobileNumber) {
-              parsedList.push({ registerNumber, name: name || "Student", parentName: parentName || "Parent", mobileNumber, gender: "Male", relationship: "Father" });
+              parsedList.push({
+                registerNumber,
+                name: name || "Student",
+                parentName: parentName || "Parent",
+                mobileNumber,
+                gender: "Male",
+                relationship: "Father",
+              });
             }
           }
         }
