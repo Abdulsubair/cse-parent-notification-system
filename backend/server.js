@@ -126,23 +126,37 @@ const seedDefaultUsers = async () => {
       console.log("✅ Default Academic Years seeded");
     }
 
-    // Seed Sections (CSE A and CSE B ONLY) if empty
-    const secCount = await Section.countDocuments();
-    if (secCount === 0) {
-      await Section.insertMany([
-        { year: "Second Year", sectionName: "CSE A" },
-        { year: "Second Year", sectionName: "CSE B" },
-        { year: "Third Year", sectionName: "CSE A" },
-        { year: "Third Year", sectionName: "CSE B" },
-        { year: "Final Year", sectionName: "CSE A" },
-        { year: "Final Year", sectionName: "CSE B" },
-      ]);
-      console.log("✅ Default Sections (CSE A & CSE B) seeded");
-    }
+    // Clean up legacy CSD / Fourth Year sections from DB
+    await Section.deleteMany({
+      $or: [
+        { sectionName: { $regex: /CSD/i } },
+        { year: { $regex: /Fourth/i } }
+      ]
+    });
 
-    // Ensure any legacy CSD section is removed or renamed to CSE B
-    await Section.deleteMany({ sectionName: { $regex: /CSD/i } });
-    await Student.updateMany({ section: { $regex: /CSD/i } }, { section: "CSE B" });
+    // Ensure the 6 standard CSE sections (CSE A & CSE B for 2nd, 3rd, Final Year) exist
+    const canonicalSections = [
+      { year: "Second Year", sectionName: "CSE A" },
+      { year: "Second Year", sectionName: "CSE B" },
+      { year: "Third Year", sectionName: "CSE A" },
+      { year: "Third Year", sectionName: "CSE B" },
+      { year: "Final Year", sectionName: "CSE A" },
+      { year: "Final Year", sectionName: "CSE B" },
+    ];
+
+    for (const sec of canonicalSections) {
+      const exists = await Section.findOne({ year: sec.year, sectionName: sec.sectionName });
+      if (!exists) {
+        await Section.create(sec);
+      }
+    }
+    console.log("✅ Canonical Sections (CSE A & CSE B) verified and active");
+
+    // Clean up student records with legacy section names
+    await Student.updateMany({ section: { $regex: /CSDA|CSD-A|CSD A/i } }, { section: "CSE A" });
+    await Student.updateMany({ section: { $regex: /CSDB|CSD-B|CSD B/i } }, { section: "CSE B" });
+    await Student.updateMany({ section: { $regex: /CSD/i } }, { section: "CSE A" });
+    await Student.updateMany({ year: { $regex: /Fourth/i } }, { year: "Final Year" });
 
   } catch (error) {
     console.error("❌ Error seeding default users/master data:", error.message);

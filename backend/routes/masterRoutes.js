@@ -56,7 +56,7 @@ router.delete("/academic-years/:id", roleMiddleware(["hod"]), async (req, res) =
 // GET all sections
 router.get("/sections", async (req, res) => {
   try {
-    let sections = await Section.find().sort({ year: 1, sectionName: 1 });
+    let sections = await Section.find({ sectionName: { $not: /CSD/i } }).sort({ year: 1, sectionName: 1 });
     if (sections.length === 0) {
       // Default standard CSE department sections
       sections = [

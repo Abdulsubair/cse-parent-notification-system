@@ -711,12 +711,22 @@ function HODDashboard({ user, token, onLogout }) {
               </form>
 
               <div className="cards-grid">
-                {sections.map((sec) => (
-                  <div key={sec._id || `${sec.year}-${sec.sectionName}`} className="info-card">
-                    <span className="card-tag">{sec.year}</span>
-                    <h4>{sec.sectionName}</h4>
-                  </div>
-                ))}
+                {sections.map((sec) => {
+                  let displayName = sec.sectionName || "";
+                  if (/CSDA|CSD-A|CSD A/i.test(displayName)) displayName = "CSE A";
+                  else if (/CSDB|CSD-B|CSD B/i.test(displayName)) displayName = "CSE B";
+                  else displayName = displayName.replace(/CSD/gi, "CSE");
+
+                  let displayYear = sec.year || "";
+                  if (/Fourth/i.test(displayYear)) displayYear = "Final Year";
+
+                  return (
+                    <div key={sec._id || `${displayYear}-${displayName}`} className="info-card">
+                      <span className="card-tag">{displayYear}</span>
+                      <h4>{displayName}</h4>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
