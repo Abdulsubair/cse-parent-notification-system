@@ -256,10 +256,10 @@ const computeOverallStatus = (smsStatus, whatsappStatus) => {
   const whatsappDelivered = deliveredStatuses.includes(whatsappStatus);
   const whatsappNotAvailable = whatsappStatus === "NOT_AVAILABLE";
   const whatsappFailed = whatsappStatus === "FAILED";
+  const whatsappDisabled = whatsappStatus === "DISABLED";
 
   if (smsDelivered && whatsappDelivered) return "SMS_AND_WHATSAPP_SENT";
-  if (smsDelivered && whatsappNotAvailable) return "SMS_SENT_ONLY";
-  if (smsDelivered && whatsappFailed) return "SMS_SENT_ONLY";
+  if (smsDelivered && (whatsappNotAvailable || whatsappFailed || whatsappDisabled)) return "SMS_SENT_ONLY";
   if (smsDelivered || whatsappDelivered) return "SUCCESS";
   return "FAILED";
 };
@@ -283,9 +283,11 @@ const sendAbsenceNotifications = async ({ attendance, absentRecords, students, s
     // Always send SMS to mobile number
     const smsResult = await sendSms(parent?.mobileNumber || parent?.phone, combined);
 
-    // Only send WhatsApp if parent has a WhatsApp number
-    const hasWhatsApp = parent?.whatsappNumber && parent.whatsappNumber.length > 0;
-    const whatsappResult = await sendWhatsApp(hasWhatsApp ? parent.whatsappNumber : null, combined);
+    // WhatsApp disabled temporarily due to sandbox configuration issues
+    // Uncomment when Twilio WhatsApp sandbox is properly configured
+    const whatsappResult = { status: "DISABLED" };
+    // const hasWhatsApp = parent?.whatsappNumber && parent.whatsappNumber.length > 0;
+    // const whatsappResult = await sendWhatsApp(hasWhatsApp ? parent.whatsappNumber : null, combined);
 
     const log = {
       attendanceId: attendance._id,
