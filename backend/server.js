@@ -24,18 +24,43 @@ const mongoUri =
   process.env.MONGODB_URI ||
   "mongodb://127.0.0.1:27017/cse-parent-notification";
 
-let isConnected = false;
+// How long a request waits for a pending connection before giving up on it.
+// The attempt itself keeps running in the background, so the service recovers
+// on its own once the database becomes reachable again.
+const DB_WAIT_MS = 2000;
 
 // Fail fast instead of buffering queries while the database is unreachable
 mongoose.set("bufferCommands", false);
 
-const connectDB = async () => {
-  if (isConnected && mongoose.connection.readyState === 1) return;
-  await mongoose.connect(mongoUri, {
-    serverSelectionTimeoutMS: 10000,
-  });
-  isConnected = true;
+let connectAttempt = null;
+
+const connectDB = () => {
+  if (mongoose.connection.readyState === 1) return Promise.resolve();
+
+  if (!connectAttempt) {
+    connectAttempt = mongoose
+      .connect(mongoUri, { serverSelectionTimeoutMS: 10000 })
+      .then(() => {
+        console.log(`✅ MongoDB connected to ${mongoUri}`);
+      })
+      .catch((err) => {
+        console.error("❌ MongoDB connection failed:", err.message);
+      })
+      .finally(() => {
+        connectAttempt = null;
+      });
+  }
+
+  return connectAttempt;
 };
+
+// Seed on every successful (re)connection, so a database that only becomes
+// reachable after startup still ends up with the default users
+let seeding = null;
+
+mongoose.connection.on("connected", () => {
+  seeding = seedDefaultUsers();
+});
 
 // Diagnostics: must stay reachable even when the database is unavailable
 app.get("/", (req, res) => {
@@ -52,10 +77,11 @@ app.get("/api/health", (req, res) => {
 
 // Ensure DB is ready before every request (required for Vercel serverless)
 app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-  } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
+  if (mongoose.connection.readyState !== 1) {
+    await Promise.race([
+      connectDB(),
+      new Promise((resolve) => setTimeout(resolve, DB_WAIT_MS)),
+    ]);
   }
 
   if (mongoose.connection.readyState !== 1) {
@@ -63,6 +89,8 @@ app.use(async (req, res, next) => {
       .status(503)
       .json({ message: "Database connection error. Please try again." });
   }
+
+  await seeding;
 
   next();
 });
@@ -128,14 +156,7 @@ app.listen(PORT, () => {
   );
 });
 
-connectDB()
-  .then(async () => {
-    console.log(`✅ MongoDB connected to ${mongoUri}`);
-    await seedDefaultUsers();
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection failed:", err.message);
-  });
+connectDB();
 
 // ---------------------------------------------------------------------------
 // Export for Vercel serverless handler
