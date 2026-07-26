@@ -261,114 +261,157 @@ router.post("/students/bulk", roleMiddleware(["hod"]), async (req, res) => {
       return res.status(400).json({ message: "Year and Section are required fields" });
     }
 
-    const savedStudents = [];
-    const errors = [];
+    // 1. Clean & validate incoming record objects
+    const cleanedRecords = [];
+    for (const rec of students) {
+      if (!rec || !rec.registerNumber || !rec.name || !rec.mobileNumber) continue;
 
-    for (let i = 0; i < students.length; i++) {
-      const record = students[i];
-      try {
-        const {
-          registerNumber,
-          name,
-          gender = "Male",
-          parentName,
-          mobileNumber,
-          relationship = "Father",
-        } = record;
+      const regNumStr = String(rec.registerNumber).trim();
+      const studentNameStr = String(rec.name).trim();
+      const parentNameStr = rec.parentName ? String(rec.parentName).trim() : "Parent";
 
-        if (!registerNumber || !name || !parentName || !mobileNumber) {
-          continue; // skip incomplete records
-        }
+      let cleanedMobile = String(rec.mobileNumber).replace(/\D/g, "");
+      if (cleanedMobile.length > 10) cleanedMobile = cleanedMobile.slice(-10);
+      if (cleanedMobile.length < 10) cleanedMobile = cleanedMobile.padStart(10, "9");
 
-        const regNumStr = String(registerNumber).trim();
-        const studentNameStr = String(name).trim();
-        const parentNameStr = String(parentName).trim();
+      const validGender =
+        rec.gender && (String(rec.gender).toLowerCase() === "female" || String(rec.gender).toLowerCase() === "f")
+          ? "Female"
+          : "Male";
 
-        // Clean mobile number (strip non-digits, keep 10 digits)
-        let cleanedMobile = String(mobileNumber).replace(/\D/g, "");
-        if (cleanedMobile.length > 10) {
-          cleanedMobile = cleanedMobile.slice(-10);
-        }
-        if (cleanedMobile.length < 10) {
-          cleanedMobile = cleanedMobile.padStart(10, "9");
-        }
-
-        // Ensure gender is valid enum ("Male" or "Female")
-        const validGender =
-          gender && (String(gender).toLowerCase() === "female" || String(gender).toLowerCase() === "f")
-            ? "Female"
-            : "Male";
-
-        // Ensure relationship is valid enum ("Father", "Mother", "Guardian")
-        let validRel = "Father";
-        if (relationship) {
-          const relLower = String(relationship).toLowerCase();
-          if (relLower.includes("mother") || relLower === "m") validRel = "Mother";
-          else if (relLower.includes("guardian") || relLower === "g") validRel = "Guardian";
-        }
-
-        // Find or create parent
-        let parent = await Parent.findOne({ mobileNumber: cleanedMobile });
-        if (!parent) {
-          parent = await Parent.create({
-            name: parentNameStr,
-            relationship: validRel,
-            mobileNumber: cleanedMobile,
-            whatsappNumber: cleanedMobile,
-          });
-        } else {
-          parent.name = parentNameStr;
-          await parent.save();
-        }
-
-        // Find or create student
-        let student = await Student.findOne({ registerNumber: regNumStr });
-        const studentEmail = `${regNumStr.toLowerCase()}@kce.ac.in`;
-
-        if (student) {
-          student.name = studentNameStr;
-          student.gender = validGender;
-          student.year = year;
-          student.section = section;
-          student.parentId = parent._id;
-          student.isActive = true;
-          student.phone = cleanedMobile;
-          student.email = studentEmail;
-          await student.save();
-        } else {
-          student = await Student.create({
-            registerNumber: regNumStr,
-            name: studentNameStr,
-            gender: validGender,
-            email: studentEmail,
-            phone: cleanedMobile,
-            year,
-            section,
-            parentId: parent._id,
-          });
-        }
-
-        // Ensure student is linked in parent's list
-        if (!parent.students) {
-          parent.students = [];
-        }
-        if (!parent.students.some((id) => id.toString() === student._id.toString())) {
-          parent.students.push(student._id);
-          await parent.save();
-        }
-
-        savedStudents.push(student);
-      } catch (recErr) {
-        console.error(`Error saving bulk student record at index ${i}:`, recErr);
-        errors.push({ index: i, record, error: recErr.message });
+      let validRel = "Father";
+      if (rec.relationship) {
+        const r = String(rec.relationship).toLowerCase();
+        if (r.includes("mother") || r === "m") validRel = "Mother";
+        else if (r.includes("guardian") || r === "g") validRel = "Guardian";
       }
+
+      cleanedRecords.push({
+        registerNumber: regNumStr,
+        name: studentNameStr,
+        parentName: parentNameStr,
+        mobileNumber: cleanedMobile,
+        gender: validGender,
+        relationship: validRel,
+      });
+    }
+
+    if (cleanedRecords.length === 0) {
+      return res.status(400).json({ message: "No valid student records provided" });
+    }
+
+    // 2. Batch fetch & create parents
+    const mobileNumbers = [...new Set(cleanedRecords.map((r) => r.mobileNumber))];
+    const regNumbers = [...new Set(cleanedRecords.map((r) => r.registerNumber))];
+
+    const existingParents = await Parent.find({ mobileNumber: { $in: mobileNumbers } });
+    const parentMap = new Map();
+    existingParents.forEach((p) => parentMap.set(p.mobileNumber, p));
+
+    const newParentsToCreate = [];
+    const createdMobileSet = new Set();
+
+    for (const rec of cleanedRecords) {
+      if (!parentMap.has(rec.mobileNumber) && !createdMobileSet.has(rec.mobileNumber)) {
+        createdMobileSet.add(rec.mobileNumber);
+        newParentsToCreate.push({
+          name: rec.parentName,
+          relationship: rec.relationship,
+          mobileNumber: rec.mobileNumber,
+          whatsappNumber: rec.mobileNumber,
+          students: [],
+        });
+      }
+    }
+
+    if (newParentsToCreate.length > 0) {
+      const createdParents = await Parent.insertMany(newParentsToCreate);
+      createdParents.forEach((p) => parentMap.set(p.mobileNumber, p));
+    }
+
+    // 3. Batch bulkWrite students
+    const existingStudents = await Student.find({ registerNumber: { $in: regNumbers } });
+    const studentMap = new Map();
+    existingStudents.forEach((s) => studentMap.set(s.registerNumber, s));
+
+    const bulkOps = [];
+    for (const rec of cleanedRecords) {
+      const parent = parentMap.get(rec.mobileNumber);
+      if (!parent) continue;
+      const parentId = parent._id || parent.id;
+      const studentEmail = `${rec.registerNumber.toLowerCase()}@kce.ac.in`;
+
+      if (studentMap.has(rec.registerNumber)) {
+        bulkOps.push({
+          updateOne: {
+            filter: { registerNumber: rec.registerNumber },
+            update: {
+              $set: {
+                name: rec.name,
+                gender: rec.gender,
+                year,
+                section,
+                parentId,
+                phone: rec.mobileNumber,
+                email: studentEmail,
+                isActive: true,
+              },
+            },
+          },
+        });
+      } else {
+        bulkOps.push({
+          insertOne: {
+            document: {
+              registerNumber: rec.registerNumber,
+              name: rec.name,
+              gender: rec.gender,
+              email: studentEmail,
+              phone: rec.mobileNumber,
+              year,
+              section,
+              parentId,
+              isActive: true,
+            },
+          },
+        });
+      }
+    }
+
+    if (bulkOps.length > 0) {
+      await Student.bulkWrite(bulkOps);
+    }
+
+    // 4. Batch link student IDs to parents
+    const allStudents = await Student.find({ registerNumber: { $in: regNumbers } });
+    const parentStudentsMap = new Map();
+
+    allStudents.forEach((st) => {
+      const pId = st.parentId.toString();
+      if (!parentStudentsMap.has(pId)) {
+        parentStudentsMap.set(pId, new Set());
+      }
+      parentStudentsMap.get(pId).add(st._id);
+    });
+
+    const parentUpdateOps = [];
+    for (const [pId, stIdSet] of parentStudentsMap.entries()) {
+      parentUpdateOps.push({
+        updateOne: {
+          filter: { _id: pId },
+          update: { $addToSet: { students: { $each: Array.from(stIdSet) } } },
+        },
+      });
+    }
+
+    if (parentUpdateOps.length > 0) {
+      await Parent.bulkWrite(parentUpdateOps);
     }
 
     res.status(201).json({
       success: true,
-      count: savedStudents.length,
-      errorsCount: errors.length,
-      message: `Successfully processed ${savedStudents.length} student records.${errors.length > 0 ? ` (${errors.length} failed)` : ""}`,
+      count: allStudents.length,
+      message: `Successfully processed ${allStudents.length} student records in bulk.`,
     });
   } catch (error) {
     console.error("Bulk upload error:", error);
