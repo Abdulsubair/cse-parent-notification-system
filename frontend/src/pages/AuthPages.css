@@ -97,11 +97,49 @@
   color: var(--text-main);
   font-size: 0.95rem;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .form-group input:focus, .form-group select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Password show/hide toggle */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  padding-right: 2.8rem; /* leave room for the eye button */
+}
+
+.eye-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, transform 0.15s ease;
+  height: 20px;
+  width: 20px;
+}
+
+.eye-toggle:hover {
+  color: var(--text-main);
+  transform: scale(1.15);
+}
+
+.eye-toggle:focus {
+  outline: none;
 }
 
 .auth-error {
