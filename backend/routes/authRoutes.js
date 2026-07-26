@@ -41,6 +41,12 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        message: "Server misconfiguration: JWT_SECRET is not set",
+      });
+    }
+
     const token = jwt.sign(
       {
         userId: user._id,
