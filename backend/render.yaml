@@ -9,3 +9,7 @@ services:
         value: 5000
       - key: NODE_ENV
         value: production
+      - key: ATLAS_MONGODB_URI
+        value: mongodb+srv://asubair383_db_user:CSEParentDB2026Secure1430@cse-parent-db.1hdsq5d.mongodb.net/?appName=CSE-Parent-DB
+      - key: JWT_SECRET
+        value: Cse_parent_notification_secret_2026_change_this

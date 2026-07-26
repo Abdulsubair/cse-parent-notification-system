@@ -21,6 +21,7 @@ app.use(express.json());
 // MongoDB: cached lazy connection (works for both serverless & local dev)
 // ---------------------------------------------------------------------------
 const mongoUri =
+  process.env.ATLAS_MONGODB_URI ||
   process.env.MONGODB_URI ||
   "mongodb://127.0.0.1:27017/cse-parent-notification";
 
@@ -79,18 +80,28 @@ app.use("/api/master", authMiddleware, masterRoutes);
 // ---------------------------------------------------------------------------
 const seedDefaultUsers = async () => {
   try {
+    // HOD user — create or fix password to HOD@2026
     const hodExists = await User.findOne({ username: "hod_cse" });
     if (!hodExists) {
-      const hodPassword = await bcrypt.hash("Hod@2026", 10);
+      const hodPassword = await bcrypt.hash("HOD@2026", 10);
       await User.create({
         name: "Dr. Subair",
         username: "hod_cse",
         password: hodPassword,
         role: "hod",
       });
-      console.log("✅ Default HOD user created (username: hod_cse, password: Hod@2026)");
+      console.log("✅ Default HOD user created (username: hod_cse, password: HOD@2026)");
+    } else {
+      // Fix password in case it was seeded with the old wrong value
+      const correctPassword = await bcrypt.compare("HOD@2026", hodExists.password);
+      if (!correctPassword) {
+        const hodPassword = await bcrypt.hash("HOD@2026", 10);
+        await User.updateOne({ username: "hod_cse" }, { password: hodPassword });
+        console.log("✅ HOD user password updated to HOD@2026");
+      }
     }
 
+    // Staff user — create if not exists
     const staffExists = await User.findOne({ username: "staff_cse" });
     if (!staffExists) {
       const staffPassword = await bcrypt.hash("Staff@2026", 10);
