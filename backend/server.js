@@ -24,12 +24,26 @@ const mongoUri =
   process.env.MONGODB_URI ||
   "mongodb://127.0.0.1:27017/cse-parent-notification";
 
+console.log("MongoDB URI configured:", mongoUri ? "Yes" : "No");
+console.log("Environment check:", {
+  MONGODB_URI: !!process.env.MONGODB_URI,
+  JWT_SECRET: !!process.env.JWT_SECRET,
+  TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
+});
+
 let isConnected = false;
 
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return;
-  await mongoose.connect(mongoUri);
-  isConnected = true;
+  console.log("Attempting to connect to MongoDB...");
+  try {
+    await mongoose.connect(mongoUri);
+    isConnected = true;
+    console.log("✅ MongoDB connected successfully");
+  } catch (error) {
+    console.error("❌ MongoDB connection error:", error.message);
+    throw error;
+  }
 };
 
 // Ensure DB is ready before every request (required for Vercel serverless)
@@ -97,6 +111,8 @@ const seedDefaultUsers = async () => {
 // Start server (works on both Render and local development)
 // ---------------------------------------------------------------------------
 const PORT = process.env.PORT || 5000;
+console.log(`Starting server on port ${PORT}...`);
+
 connectDB()
   .then(async () => {
     console.log(`✅ MongoDB connected to ${mongoUri}`);
@@ -109,6 +125,7 @@ connectDB()
   })
   .catch((err) => {
     console.error("❌ MongoDB connection failed:", err.message);
+    console.error("Full error:", err);
     process.exit(1);
   });
 
