@@ -26,32 +26,50 @@ const mongoUri =
 
 let isConnected = false;
 
+// Fail fast instead of buffering queries while the database is unreachable
+mongoose.set("bufferCommands", false);
+
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return;
-  await mongoose.connect(mongoUri);
+  await mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: 10000,
+  });
   isConnected = true;
 };
+
+// Diagnostics: must stay reachable even when the database is unavailable
+app.get("/", (req, res) => {
+  res.json({ message: "CSE Parent Notification System Backend is running!" });
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    jwtSecretConfigured: Boolean(process.env.JWT_SECRET),
+  });
+});
 
 // Ensure DB is ready before every request (required for Vercel serverless)
 app.use(async (req, res, next) => {
   try {
     await connectDB();
-    next();
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
-    res
-      .status(500)
+  }
+
+  if (mongoose.connection.readyState !== 1) {
+    return res
+      .status(503)
       .json({ message: "Database connection error. Please try again." });
   }
+
+  next();
 });
 
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
-app.get("/", (req, res) => {
-  res.json({ message: "CSE Parent Notification System Backend is running!" });
-});
-
 // Public routes
 app.use("/api/auth", authRoutes);
 
@@ -67,14 +85,14 @@ const seedDefaultUsers = async () => {
   try {
     const hodExists = await User.findOne({ username: "hod_cse" });
     if (!hodExists) {
-      const hodPassword = await bcrypt.hash("Hod@2026", 10);
+      const hodPassword = await bcrypt.hash("HOD@2026", 10);
       await User.create({
         name: "Dr. Subair",
         username: "hod_cse",
         password: hodPassword,
         role: "hod",
       });
-      console.log("✅ Default HOD user created (username: hod_cse, password: Hod@2026)");
+      console.log("✅ Default HOD user created (username: hod_cse, password: HOD@2026)");
     }
 
     const staffExists = await User.findOne({ username: "staff_cse" });
@@ -97,19 +115,26 @@ const seedDefaultUsers = async () => {
 // Start server (works on both Render and local development)
 // ---------------------------------------------------------------------------
 const PORT = process.env.PORT || 5000;
+
+if (!process.env.JWT_SECRET) {
+  console.error(
+    "❌ JWT_SECRET is not set. Login will fail until it is configured."
+  );
+}
+
+app.listen(PORT, () => {
+  console.log(
+    `🚀 CSE Parent Notification System Backend running on port ${PORT}`
+  );
+});
+
 connectDB()
   .then(async () => {
     console.log(`✅ MongoDB connected to ${mongoUri}`);
     await seedDefaultUsers();
-    app.listen(PORT, () => {
-      console.log(
-        `🚀 CSE Parent Notification System Backend running on port ${PORT}`
-      );
-    });
   })
   .catch((err) => {
     console.error("❌ MongoDB connection failed:", err.message);
-    process.exit(1);
   });
 
 // ---------------------------------------------------------------------------
