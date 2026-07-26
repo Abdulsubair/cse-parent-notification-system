@@ -10,12 +10,13 @@ const attendanceRoutes = require("./routes/attendanceRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const masterRoutes = require("./routes/masterRoutes");
 const { authMiddleware } = require("./middleware/authMiddleware");
-const { User } = require("./models");
+const { User, Student, Parent, AcademicYear, Section } = require("./models");
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // ---------------------------------------------------------------------------
 // MongoDB: cached lazy connection (works for both serverless & local dev)
@@ -158,9 +159,20 @@ const seedDefaultUsers = async () => {
     await Student.updateMany({ section: { $regex: /CSD/i } }, { section: "CSE A" });
     await Student.updateMany({ year: { $regex: /Fourth/i } }, { year: "Final Year" });
 
-    // Demo sample students wiped. Preserving future HOD student registrations.
-    // await Student.deleteMany({});
-    // await Parent.deleteMany({});
+    // ── Remove leftover sample/demo data ────────────────────────────────────
+    // Sample students all used phone numbers in the 98765432xx range.
+    // Delete them so Parent Contacts is empty until HOD registers real students.
+    const sampleRemoved = await Student.deleteMany({
+      phone: { $regex: /^987654321/ }
+    });
+    if (sampleRemoved.deletedCount > 0) {
+      // Also delete orphaned parents whose phone numbers match the sample set
+      await Parent.deleteMany({
+        mobileNumber: { $regex: /^987654321/ }
+      });
+      console.log(`✅ Removed ${sampleRemoved.deletedCount} sample students & their parents`);
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
   } catch (error) {
     console.error("❌ Error seeding default users/master data:", error.message);

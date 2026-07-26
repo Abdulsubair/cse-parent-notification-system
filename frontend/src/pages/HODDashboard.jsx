@@ -141,18 +141,41 @@ function HODDashboard({ user, token, onLogout }) {
         }
 
         lines.forEach((line) => {
-          const mobileMatch = line.match(/\b\d{10}\b/);
+          const mobileMatch = line.match(/\b[6-9]\d{9}\b/) || line.match(/\b\d{10}\b/);
           if (!mobileMatch) return;
           const mobileNumber = mobileMatch[0];
-          const regMatch = line.match(/\b[a-zA-Z0-9-]{5,15}\b/);
-          if (!regMatch) return;
-          const registerNumber = regMatch[0];
+
+          const regCandidates = line.match(/\b[a-zA-Z0-9-]{5,15}\b/g) || [];
+          const registerNumber = regCandidates.find(
+            (c) => c !== mobileNumber && !/^\d{1,4}$/.test(c) && !/^(mobile|phone|student|register|number|name|father|mother|parent)$/i.test(c)
+          );
+          if (!registerNumber) return;
+
           let remaining = line.replace(registerNumber, "").replace(mobileNumber, "").trim();
-          remaining = remaining.replace(/[^a-zA-Z\s.]/g, "").replace(/\s+/g, " ").trim();
-          const words = remaining.split(" ");
-          let name = words.length >= 2 ? words.slice(0, Math.ceil(words.length / 2)).join(" ") : (words[0] || "Student");
-          let parentName = words.length >= 2 ? words.slice(Math.ceil(words.length / 2)).join(" ") : "Parent";
-          parsedList.push({ registerNumber, name, parentName, mobileNumber, relationship: "Father" });
+          remaining = remaining.replace(/[^a-zA-Z\s.]/g, " ").replace(/\s+/g, " ").trim();
+          const words = remaining.split(" ").filter((w) => w.length > 0);
+
+          let name = "Student";
+          let parentName = "Parent";
+
+          if (words.length > 0) {
+            const nonInitialWords = words.filter((w) => w.length > 2);
+            if (nonInitialWords.length <= 1) {
+              name = words.join(" ");
+              parentName = "Parent";
+            } else {
+              const mid = Math.ceil(words.length / 2);
+              name = words.slice(0, mid).join(" ");
+              parentName = words.slice(mid).join(" ");
+            }
+          }
+
+          let gender = "Male";
+          if (/\b(female|girl)\b/i.test(line)) {
+            gender = "Female";
+          }
+
+          parsedList.push({ registerNumber, name: name || "Student", parentName: parentName || "Parent", mobileNumber, gender, relationship: "Father" });
         });
 
       } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls") || fileName.endsWith(".csv")) {
@@ -191,7 +214,7 @@ function HODDashboard({ user, token, onLogout }) {
               });
             }
             if (registerNumber && mobileNumber) {
-              parsedList.push({ registerNumber, name: name || "Student", parentName: parentName || "Parent", mobileNumber, relationship: "Father" });
+              parsedList.push({ registerNumber, name: name || "Student", parentName: parentName || "Parent", mobileNumber, gender: "Male", relationship: "Father" });
             }
           }
         }
