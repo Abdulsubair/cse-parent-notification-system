@@ -131,141 +131,149 @@ function StaffPage({ user, token, onLogout }) {
       day: "2-digit", month: "2-digit", year: "numeric",
     });
 
-    // ── Header block ──
-    // Blue top banner
-    doc.setFillColor(0, 51, 153);
-    doc.rect(0, 0, pageW, 28, "F");
+    // ── Fetch logo and embed ──
+    const logoImg = new Image();
+    logoImg.crossOrigin = "anonymous";
+    logoImg.src = "/college-logo.jpg";
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("KINGS COLLEGE OF ENGINEERING", pageW / 2, 10, { align: "center" });
+    const renderPDF = () => {
+      // ═══════════════════════════════════════════════════════════
+      // HEADER  — white background, logo left, text right
+      // ═══════════════════════════════════════════════════════════
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text("(AUTONOMOUS)", pageW / 2, 16, { align: "center" });
-    doc.setFontSize(8);
-    doc.text(
-      "Approved by AICTE, New Delhi | Affiliated to Anna University, Chennai | NAAC Accredited Institution",
-      pageW / 2, 22, { align: "center" }
-    );
+      // Logo — left side (same position as reference image)
+      try {
+        doc.addImage(logoImg, "JPEG", 10, 4, 22, 22);
+      } catch (_) { /* skip if logo fails */ }
 
-    // ── Sub-header ──
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Department of Computer Science and Engineering", pageW / 2, 36, { align: "center" });
+      // College name block — centred to the right of the logo
+      const textX = pageW / 2 + 5; // shift slightly right to balance logo
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text("KINGS COLLEGE OF ENGINEERING", textX, 10, { align: "center" });
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Academic Year ${selectedAcademicYear}`, pageW / 2, 43, { align: "center" });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("(AUTONOMOUS)", textX, 15.5, { align: "center" });
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Daily Attendance Report", pageW / 2, 50, { align: "center" });
+      // Affiliation lines — right side (small, normal weight)
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.text("Approved by AICTE, New Delhi", pageW - 10, 8, { align: "right" });
+      doc.text("Affiliated to Anna University, Chennai", pageW - 10, 12.5, { align: "right" });
+      doc.text("Recognized under 2(f) & 12(B), UGC", pageW - 10, 17, { align: "right" });
+      doc.text("NAAC Accredited Institution", pageW - 10, 21.5, { align: "right" });
 
-    // ── Thin divider line ──
-    doc.setDrawColor(0, 51, 153);
-    doc.setLineWidth(0.5);
-    doc.line(14, 54, pageW - 14, 54);
+      // ── Full-width horizontal rule (matches reference image thick border) ──
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.8);
+      doc.line(10, 27, pageW - 10, 27);
+      doc.setLineWidth(0.3);
+      doc.line(10, 28.5, pageW - 10, 28.5);
 
-    // ── Class meta row ──
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    doc.setTextColor(30, 30, 30);
-    const metaY = 61;
-    doc.text(`Year / Sem : ${selectedYear}`, 14, metaY);
-    doc.text(`Section : ${selectedSection}`, 80, metaY);
-    doc.text(`Date : ${todayDate}`, 145, metaY);
-    doc.text(`Staff Name : ${selectedStaffName}`, 14, metaY + 7);
-    doc.text(`Class Strength : ${students.length}`, 145, metaY + 7);
+      // ── Sub-header lines (centred, black) ──
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(0, 0, 0);
+      doc.text("Department of Computer Science and Engineering", pageW / 2, 34.5, { align: "center" });
 
-    // ── Attendance statistics ──
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(0, 100, 0);
-    doc.text(`Present: ${presentCount}`, 14, metaY + 16);
-    doc.setTextColor(180, 0, 0);
-    doc.text(`Absent: ${absentCount}`, 60, metaY + 16);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Total: ${totalCount}`, 105, metaY + 16);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.text(`Academic Year ${selectedAcademicYear}`, pageW / 2, 40.5, { align: "center" });
 
-    // ── Attendance Table ──
-    const tableRows = students.map((st, idx) => {
-      const status = attendance[st._id] || "Present";
-      const parentName = st.parentId?.name || "—";
-      const parentMobile = st.parentId?.mobileNumber || st.phone || "—";
-      return [
-        idx + 1,
-        st.registerNumber,
-        st.name,
-        parentName,
-        parentMobile,
-        status,
-      ];
-    });
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.text("Daily Attendance Report", pageW / 2, 46.5, { align: "center" });
 
-    autoTable(doc, {
-      startY: metaY + 22,
-      head: [["S.No", "Reg No", "Student Name", "Parent Name", "Parent Mobile", "Status"]],
-      body: tableRows,
-      styles: {
-        fontSize: 8.5,
-        cellPadding: 2.5,
-        halign: "center",
-        valign: "middle",
-        lineColor: [180, 180, 180],
-        lineWidth: 0.3,
-      },
-      headStyles: {
-        fillColor: [0, 51, 153],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        fontSize: 9,
-        halign: "center",
-      },
-      columnStyles: {
-        0: { cellWidth: 12, halign: "center" },
-        1: { cellWidth: 32 },
-        2: { cellWidth: 45, halign: "left" },
-        3: { cellWidth: 38, halign: "left" },
-        4: { cellWidth: 30 },
-        5: { cellWidth: 20 },
-      },
-      alternateRowStyles: { fillColor: [245, 248, 255] },
-      didParseCell: (hookData) => {
-        if (hookData.section === "body" && hookData.column.index === 5) {
-          const val = hookData.cell.raw;
-          hookData.cell.styles.textColor =
-            val === "Absent" ? [200, 0, 0] : [0, 130, 50];
-          hookData.cell.styles.fontStyle = "bold";
-        }
-      },
-      margin: { left: 14, right: 14 },
-    });
+      // ── Class meta info row (exactly like the reference) ──
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const metaY = 54;
+      doc.text(`Year / Sem :  ${selectedYear}`, 10, metaY);
+      doc.text(`Section :  ${selectedSection}`, pageW / 2 - 10, metaY);
+      doc.text(`Date :  ${todayDate}`, 10, metaY + 6);
+      doc.text(`Class Strength :  ${students.length}`, pageW / 2 - 10, metaY + 6);
+      doc.text(`Present :  ${presentCount}`, 10, metaY + 12);
+      doc.text(`Absent :  ${absentCount}`, pageW / 2 - 10, metaY + 12);
 
-    // ── Signature footer ──
-    const finalY = doc.lastAutoTable.finalY + 18;
-    const sigY = Math.min(finalY, 270);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(50, 50, 50);
-    doc.text("Staff Signature", 30, sigY, { align: "center" });
-    doc.line(14, sigY - 4, 55, sigY - 4);
-    doc.text("HOD Signature", pageW - 35, sigY, { align: "center" });
-    doc.line(pageW - 55, sigY - 4, pageW - 14, sigY - 4);
+      // ── Attendance Table ──
+      const tableRows = students.map((st, idx) => {
+        const status = attendance[st._id] || "Present";
+        const parentName = st.parentId?.name || "—";
+        const parentMobile = st.parentId?.mobileNumber || st.phone || "—";
+        return [idx + 1, st.registerNumber, st.name, parentName, parentMobile, status];
+      });
 
-    // ── Page number ──
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(130, 130, 130);
-      doc.text(`Page ${i} of ${pageCount}`, pageW / 2, 292, { align: "center" });
+      autoTable(doc, {
+        startY: metaY + 18,
+        head: [["S.No", "Reg No", "Student Name", "Parent Name", "Parent Mobile", "Status"]],
+        body: tableRows,
+        theme: "grid",
+        styles: {
+          fontSize: 8.5,
+          cellPadding: 2.2,
+          halign: "center",
+          valign: "middle",
+          textColor: [0, 0, 0],
+          lineColor: [0, 0, 0],
+          lineWidth: 0.3,
+          fillColor: [255, 255, 255],
+        },
+        headStyles: {
+          fillColor: [255, 255, 255],
+          textColor: [0, 0, 0],
+          fontStyle: "bold",
+          fontSize: 8.5,
+          halign: "center",
+          lineColor: [0, 0, 0],
+          lineWidth: 0.4,
+        },
+        alternateRowStyles: {
+          fillColor: [255, 255, 255],
+        },
+        columnStyles: {
+          0: { cellWidth: 12, halign: "center" },
+          1: { cellWidth: 30, halign: "center" },
+          2: { cellWidth: 50, halign: "left" },
+          3: { cellWidth: 38, halign: "left" },
+          4: { cellWidth: 32, halign: "center" },
+          5: { cellWidth: 18, halign: "center" },
+        },
+        margin: { left: 10, right: 10 },
+      });
+
+      // ── Signature footer ──
+      const finalY = doc.lastAutoTable.finalY + 16;
+      const sigY = Math.min(finalY, 272);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      doc.line(10, sigY - 3, 55, sigY - 3);
+      doc.text("Class Coordinator", 32, sigY + 2, { align: "center" });
+      doc.line(pageW - 55, sigY - 3, pageW - 10, sigY - 3);
+      doc.text("Head of Department", pageW - 32, sigY + 2, { align: "center" });
+
+      // ── Page number ──
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Page ${i} of ${pageCount}`, pageW / 2, 293, { align: "center" });
+      }
+
+      const filename = `Attendance_${selectedYear.replace(/ /g, "-")}_${selectedSection.replace(/ /g, "-")}_${todayDate.replace(/\//g, "-")}.pdf`;
+      doc.save(filename);
+    };
+
+    if (logoImg.complete && logoImg.naturalWidth > 0) {
+      renderPDF();
+    } else {
+      logoImg.onload = renderPDF;
+      logoImg.onerror = renderPDF; // render even if logo fails
     }
-
-    const filename = `Attendance_${selectedYear.replace(/ /g, "-")}_${selectedSection.replace(/ /g, "-")}_${todayDate.replace(/\//g, "-")}.pdf`;
-    doc.save(filename);
   };
 
   const handleSubmitAttendance = async () => {
