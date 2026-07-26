@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import "./StaffPage.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "https://cse-parent-notification-system.onrender.com";
@@ -115,6 +117,156 @@ function StaffPage({ user, token, onLogout }) {
   const totalCount = students.length;
   const presentCount = Object.values(attendance).filter((st) => st === "Present").length;
   const absentCount = Object.values(attendance).filter((st) => st === "Absent").length;
+
+  // ─── PDF Report Generator ───────────────────────────────────────────────
+  const handleDownloadPDF = () => {
+    if (students.length === 0) {
+      alert("No students to generate report for.");
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const todayDate = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+
+    // ── Header block ──
+    // Blue top banner
+    doc.setFillColor(0, 51, 153);
+    doc.rect(0, 0, pageW, 28, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("KINGS COLLEGE OF ENGINEERING", pageW / 2, 10, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("(AUTONOMOUS)", pageW / 2, 16, { align: "center" });
+    doc.setFontSize(8);
+    doc.text(
+      "Approved by AICTE, New Delhi | Affiliated to Anna University, Chennai | NAAC Accredited Institution",
+      pageW / 2, 22, { align: "center" }
+    );
+
+    // ── Sub-header ──
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Department of Computer Science and Engineering", pageW / 2, 36, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Academic Year ${selectedAcademicYear}`, pageW / 2, 43, { align: "center" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Daily Attendance Report", pageW / 2, 50, { align: "center" });
+
+    // ── Thin divider line ──
+    doc.setDrawColor(0, 51, 153);
+    doc.setLineWidth(0.5);
+    doc.line(14, 54, pageW - 14, 54);
+
+    // ── Class meta row ──
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(30, 30, 30);
+    const metaY = 61;
+    doc.text(`Year / Sem : ${selectedYear}`, 14, metaY);
+    doc.text(`Section : ${selectedSection}`, 80, metaY);
+    doc.text(`Date : ${todayDate}`, 145, metaY);
+    doc.text(`Staff Name : ${selectedStaffName}`, 14, metaY + 7);
+    doc.text(`Class Strength : ${students.length}`, 145, metaY + 7);
+
+    // ── Attendance statistics ──
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(0, 100, 0);
+    doc.text(`Present: ${presentCount}`, 14, metaY + 16);
+    doc.setTextColor(180, 0, 0);
+    doc.text(`Absent: ${absentCount}`, 60, metaY + 16);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total: ${totalCount}`, 105, metaY + 16);
+
+    // ── Attendance Table ──
+    const tableRows = students.map((st, idx) => {
+      const status = attendance[st._id] || "Present";
+      const parentName = st.parentId?.name || "—";
+      const parentMobile = st.parentId?.mobileNumber || st.phone || "—";
+      return [
+        idx + 1,
+        st.registerNumber,
+        st.name,
+        parentName,
+        parentMobile,
+        status,
+      ];
+    });
+
+    autoTable(doc, {
+      startY: metaY + 22,
+      head: [["S.No", "Reg No", "Student Name", "Parent Name", "Parent Mobile", "Status"]],
+      body: tableRows,
+      styles: {
+        fontSize: 8.5,
+        cellPadding: 2.5,
+        halign: "center",
+        valign: "middle",
+        lineColor: [180, 180, 180],
+        lineWidth: 0.3,
+      },
+      headStyles: {
+        fillColor: [0, 51, 153],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 9,
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: 12, halign: "center" },
+        1: { cellWidth: 32 },
+        2: { cellWidth: 45, halign: "left" },
+        3: { cellWidth: 38, halign: "left" },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 20 },
+      },
+      alternateRowStyles: { fillColor: [245, 248, 255] },
+      didParseCell: (hookData) => {
+        if (hookData.section === "body" && hookData.column.index === 5) {
+          const val = hookData.cell.raw;
+          hookData.cell.styles.textColor =
+            val === "Absent" ? [200, 0, 0] : [0, 130, 50];
+          hookData.cell.styles.fontStyle = "bold";
+        }
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    // ── Signature footer ──
+    const finalY = doc.lastAutoTable.finalY + 18;
+    const sigY = Math.min(finalY, 270);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(50, 50, 50);
+    doc.text("Staff Signature", 30, sigY, { align: "center" });
+    doc.line(14, sigY - 4, 55, sigY - 4);
+    doc.text("HOD Signature", pageW - 35, sigY, { align: "center" });
+    doc.line(pageW - 55, sigY - 4, pageW - 14, sigY - 4);
+
+    // ── Page number ──
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(130, 130, 130);
+      doc.text(`Page ${i} of ${pageCount}`, pageW / 2, 292, { align: "center" });
+    }
+
+    const filename = `Attendance_${selectedYear.replace(/ /g, "-")}_${selectedSection.replace(/ /g, "-")}_${todayDate.replace(/\//g, "-")}.pdf`;
+    doc.save(filename);
+  };
 
   const handleSubmitAttendance = async () => {
     if (totalCount === 0) {
@@ -355,13 +507,23 @@ function StaffPage({ user, token, onLogout }) {
               </div>
             </div>
 
-            <button
-              className="submit-attendance-btn"
-              onClick={handleSubmitAttendance}
-              disabled={submitting || totalCount === 0}
-            >
-              {submitting ? "Sending Notifications..." : "Submit Attendance & Send Messages 🚀"}
-            </button>
+            <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <button
+                className="download-pdf-btn"
+                onClick={handleDownloadPDF}
+                disabled={students.length === 0}
+                title="Download Attendance Report as PDF"
+              >
+                📄 Download PDF
+              </button>
+              <button
+                className="submit-attendance-btn"
+                onClick={handleSubmitAttendance}
+                disabled={submitting || totalCount === 0}
+              >
+                {submitting ? "Sending Notifications..." : "Submit Attendance & Send Messages 🚀"}
+              </button>
+            </div>
           </div>
         </section>
       </main>
@@ -416,7 +578,14 @@ function StaffPage({ user, token, onLogout }) {
               )}
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button
+                className="download-pdf-btn"
+                onClick={handleDownloadPDF}
+                style={{ fontSize: "0.85rem", padding: "0.5rem 1.2rem" }}
+              >
+                📄 Download Attendance PDF
+              </button>
               <button className="confirm-btn" onClick={() => setSubmissionResult(null)}>
                 Done
               </button>
