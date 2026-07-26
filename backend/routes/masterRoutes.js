@@ -317,6 +317,7 @@ router.post("/students/bulk", roleMiddleware(["hod"]), async (req, res) => {
 
     const newParentsToCreate = [];
     const createdMobileSet = new Set();
+    const parentNameUpdates = []; // Track parents that need their name fixed
 
     for (const rec of cleanedRecords) {
       if (!parentMap.has(rec.mobileNumber) && !createdMobileSet.has(rec.mobileNumber)) {
@@ -328,12 +329,36 @@ router.post("/students/bulk", roleMiddleware(["hod"]), async (req, res) => {
           whatsappNumber: rec.mobileNumber,
           students: [],
         });
+      } else if (parentMap.has(rec.mobileNumber) && rec.parentName && rec.parentName !== "Parent") {
+        // Existing parent — update their name if it is still a phone number or "Parent" placeholder
+        const existingParent = parentMap.get(rec.mobileNumber);
+        const storedName = existingParent.name || "";
+        const storedDigits = storedName.replace(/\D/g, "");
+        const nameIsPhoneOrDefault =
+          storedName === "Parent" ||
+          storedName === "" ||
+          (storedDigits.length >= 8 && /^\d[\d\s\-+().]{6,}$/.test(storedName.trim()));
+
+        if (nameIsPhoneOrDefault) {
+          parentNameUpdates.push({ id: existingParent._id, name: rec.parentName });
+          // Update the in-memory map so students get the right parentId
+          existingParent.name = rec.parentName;
+        }
       }
     }
 
     if (newParentsToCreate.length > 0) {
       const createdParents = await Parent.insertMany(newParentsToCreate);
       createdParents.forEach((p) => parentMap.set(p.mobileNumber, p));
+    }
+
+    // Apply name corrections to existing parents in one batch
+    if (parentNameUpdates.length > 0) {
+      await Promise.all(
+        parentNameUpdates.map((u) =>
+          Parent.updateOne({ _id: u.id }, { $set: { name: u.name } })
+        )
+      );
     }
 
     // 3. Batch bulkWrite students
