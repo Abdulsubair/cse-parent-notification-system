@@ -158,10 +158,9 @@ const seedDefaultUsers = async () => {
     await Student.updateMany({ section: { $regex: /CSD/i } }, { section: "CSE A" });
     await Student.updateMany({ year: { $regex: /Fourth/i } }, { year: "Final Year" });
 
-    // Wipe all pre-seeded demo sample students and parents completely
-    await Student.deleteMany({});
-    await Parent.deleteMany({});
-    console.log("🧹 Completely wiped all demo student and parent records from MongoDB Atlas. Directory is now 100% empty.");
+    // Demo sample students wiped. Preserving future HOD student registrations.
+    // await Student.deleteMany({});
+    // await Parent.deleteMany({});
 
   } catch (error) {
     console.error("❌ Error seeding default users/master data:", error.message);
