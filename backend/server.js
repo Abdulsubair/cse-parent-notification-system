@@ -59,24 +59,22 @@ app.use("/api/students", authMiddleware, studentRoutes);
 app.use("/api/master", authMiddleware, masterRoutes);
 
 // ---------------------------------------------------------------------------
-// Local development only – not executed on Vercel
+// Start server (works on both Render and local development)
 // ---------------------------------------------------------------------------
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  connectDB()
-    .then(() => {
-      console.log(`✅ MongoDB connected to ${mongoUri}`);
-      app.listen(PORT, () => {
-        console.log(
-          `🚀 CSE Parent Notification System Backend running on port ${PORT}`
-        );
-      });
-    })
-    .catch((err) => {
-      console.error("❌ MongoDB connection failed:", err.message);
-      process.exit(1);
+const PORT = process.env.PORT || 5000;
+connectDB()
+  .then(() => {
+    console.log(`✅ MongoDB connected to ${mongoUri}`);
+    app.listen(PORT, () => {
+      console.log(
+        `🚀 CSE Parent Notification System Backend running on port ${PORT}`
+      );
     });
-}
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection failed:", err.message);
+    process.exit(1);
+  });
 
 // ---------------------------------------------------------------------------
 // Export for Vercel serverless handler
