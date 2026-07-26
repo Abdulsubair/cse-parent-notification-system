@@ -7,10 +7,10 @@ function LandingPage({ onSelectRole }) {
       {/* Top Header Navbar */}
       <header className="landing-header">
         <div className="brand-badge">
-          <span className="dept-icon">🎓</span>
+          <img src="/college-logo.jpg" alt="Kings College Logo" className="landing-logo-img" />
           <div>
-            <span className="brand-title">CSE DEPARTMENT</span>
-            <span className="brand-subtitle">Parent Absence Notification System</span>
+            <span className="brand-title">KINGS ENGINEERING COLLEGE</span>
+            <span className="brand-subtitle">CSE Department Parent Notification System</span>
           </div>
         </div>
         <div className="header-actions">

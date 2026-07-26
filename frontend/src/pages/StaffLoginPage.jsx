@@ -28,7 +28,7 @@ function StaffLoginPage({ onLogin, onBack }) {
         </button>
 
         <div className="auth-header">
-          <div className="auth-icon staff-auth-icon">📚</div>
+          <img src="/college-logo.jpg" alt="Kings College Logo" className="auth-logo-img" />
           <h2>Staff Portal Login</h2>
           <p>CSE Department Absence Notification Portal</p>
         </div>

@@ -187,7 +187,7 @@ function StaffPage({ user, token, onLogout }) {
       {/* Top Navbar */}
       <nav className="staff-nav">
         <div className="nav-brand">
-          <span className="brand-logo">🎓</span>
+          <img src="/college-logo.jpg" alt="Kings College Logo" className="brand-logo-img" />
           <div>
             <h2>CSE Staff Portal</h2>
             <span className="sub-title">Daily Student Absence Parent Notification System</span>

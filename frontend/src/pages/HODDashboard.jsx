@@ -535,7 +535,7 @@ function HODDashboard({ user, token, onLogout }) {
       {/* Top Header */}
       <header className="hod-header">
         <div className="brand-badge">
-          <span className="brand-icon">🛡️</span>
+          <img src="/college-logo.jpg" alt="Kings College Logo" className="brand-logo-img" />
           <div>
             <h2>CSE HOD Administrator Portal</h2>
             <span>Department Monitoring & Master Data Management</span>

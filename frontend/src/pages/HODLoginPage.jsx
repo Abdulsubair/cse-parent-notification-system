@@ -28,7 +28,7 @@ function HODLoginPage({ onLogin, onBack }) {
         </button>
 
         <div className="auth-header">
-          <div className="auth-icon hod-auth-icon">🛡️</div>
+          <img src="/college-logo.jpg" alt="Kings College Logo" className="auth-logo-img" />
           <h2>HOD Administrator Login</h2>
           <p>CSE Department Management & Analytics Portal</p>
         </div>
