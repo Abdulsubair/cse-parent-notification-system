@@ -158,6 +158,14 @@ const seedDefaultUsers = async () => {
     await Student.updateMany({ section: { $regex: /CSD/i } }, { section: "CSE A" });
     await Student.updateMany({ year: { $regex: /Fourth/i } }, { year: "Final Year" });
 
+    // Wipe pre-seeded demo sample students and parents as requested by user
+    // (Sample reg numbers: 24CS..., 23CS..., 22CS...)
+    await Student.deleteMany({ registerNumber: { $regex: /^(24CS|23CS|22CS)/i } });
+    await Parent.deleteMany({
+      mobileNumber: { $in: ["9876543210", "9876543211", "9876543212", "9876543213", "9876543214", "9876543215", "9876543216", "9876543217", "9876543218", "9876543219"] }
+    });
+    console.log("🧹 Cleaned up pre-seeded demo student and parent records. Directory starts empty.");
+
   } catch (error) {
     console.error("❌ Error seeding default users/master data:", error.message);
   }

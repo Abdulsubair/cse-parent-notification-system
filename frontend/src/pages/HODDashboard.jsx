@@ -970,15 +970,23 @@ function HODDashboard({ user, token, onLogout }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {students.map((st) => (
-                      <tr key={st._id}>
-                        <td><strong>{st.parentId?.name || "Parent"}</strong></td>
-                        <td>{st.parentId?.relationship || "Father"}</td>
-                        <td>📱 {st.parentId?.mobileNumber || "9876543210"}</td>
-                        <td>💬 {st.parentId?.whatsappNumber || st.parentId?.mobileNumber || "9876543210"}</td>
-                        <td>{st.name} ({st.registerNumber})</td>
+                    {students.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-muted)", fontSize: "0.95rem" }}>
+                          📋 No parent contacts registered yet. Register a student or upload a student list to display parent contacts here.
+                        </td>
                       </tr>
-                    ))}
+                    ) : (
+                      students.map((st) => (
+                        <tr key={st._id}>
+                          <td><strong>{st.parentId?.name || "Parent"}</strong></td>
+                          <td>{st.parentId?.relationship || "Father"}</td>
+                          <td>📱 {st.parentId?.mobileNumber || "N/A"}</td>
+                          <td>💬 {st.parentId?.whatsappNumber || st.parentId?.mobileNumber || "N/A"}</td>
+                          <td>{st.name} ({st.registerNumber})</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
