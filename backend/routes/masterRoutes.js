@@ -172,7 +172,7 @@ router.get("/students", async (req, res) => {
   }
 });
 
-// POST add new student + parent details (HOD only)
+// POST add single student + parent details (HOD only)
 router.post("/students", roleMiddleware(["hod"]), async (req, res) => {
   try {
     const {
@@ -181,6 +181,7 @@ router.post("/students", roleMiddleware(["hod"]), async (req, res) => {
       gender = "Male",
       year,
       section,
+      academicYear = "2026-2027",
       parentName,
       relationship = "Father",
       mobileNumber,
@@ -215,6 +216,7 @@ router.post("/students", roleMiddleware(["hod"]), async (req, res) => {
       student.gender = gender;
       student.year = year;
       student.section = section;
+      student.academicYear = academicYear;
       student.parentId = parent._id;
       student.isActive = true;
       // Sync phone and email as well
@@ -232,6 +234,7 @@ router.post("/students", roleMiddleware(["hod"]), async (req, res) => {
         phone: mobileNumber,
         year,
         section,
+        academicYear,
         parentId: parent._id,
       });
     }
@@ -253,7 +256,7 @@ router.post("/students", roleMiddleware(["hod"]), async (req, res) => {
 // POST bulk add students + parents details (HOD only)
 router.post("/students/bulk", roleMiddleware(["hod"]), async (req, res) => {
   try {
-    const { students, year, section } = req.body;
+    const { students, year, section, academicYear = "2026-2027" } = req.body;
     if (!students || !Array.isArray(students)) {
       return res.status(400).json({ message: "Invalid students list format" });
     }
@@ -351,6 +354,7 @@ router.post("/students/bulk", roleMiddleware(["hod"]), async (req, res) => {
                 gender: rec.gender,
                 year,
                 section,
+                academicYear,
                 parentId,
                 phone: rec.mobileNumber,
                 email: studentEmail,
@@ -370,6 +374,7 @@ router.post("/students/bulk", roleMiddleware(["hod"]), async (req, res) => {
               phone: rec.mobileNumber,
               year,
               section,
+              academicYear,
               parentId,
               isActive: true,
             },

@@ -93,6 +93,7 @@ function HODDashboard({ user, token, onLogout }) {
   const [previewStudents, setPreviewStudents] = useState([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [parsingFile, setParsingFile] = useState(false);
+  const [uploadAcademicYear, setUploadAcademicYear] = useState("2026-2027");
   const [uploadYear, setUploadYear] = useState("Second Year");
   const [uploadSection, setUploadSection] = useState("CSE A");
 
@@ -240,7 +241,12 @@ function HODDashboard({ user, token, onLogout }) {
     try {
       const res = await authFetch(`${API_BASE}/api/master/students/bulk`, {
         method: "POST",
-        body: JSON.stringify({ students: previewStudents, year: uploadYear, section: uploadSection }),
+        body: JSON.stringify({
+          students: previewStudents,
+          academicYear: uploadAcademicYear,
+          year: uploadYear,
+          section: uploadSection,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to save student list");
@@ -767,6 +773,18 @@ function HODDashboard({ user, token, onLogout }) {
                 <div className="bulk-upload-controls">
                   <div className="bulk-upload-selectors">
                     <select
+                      value={uploadAcademicYear}
+                      onChange={(e) => setUploadAcademicYear(e.target.value)}
+                      className="bulk-select"
+                    >
+                      <option value="2026-2027">2026–2027</option>
+                      <option value="2025-2026">2025–2026</option>
+                      <option value="2027-2028">2027–2028</option>
+                      {academicYears.filter(ay => !["2025-2026","2026-2027","2027-2028"].includes(ay.yearRange)).map(ay => (
+                        <option key={ay.yearRange} value={ay.yearRange}>{ay.yearRange}</option>
+                      ))}
+                    </select>
+                    <select
                       value={uploadYear}
                       onChange={(e) => setUploadYear(e.target.value)}
                       className="bulk-select"
@@ -1113,7 +1131,7 @@ function HODDashboard({ user, token, onLogout }) {
             </div>
 
             <div className="modal-class-label">
-              Target Class: <strong>{uploadYear} — {uploadSection}</strong>
+              Target Class: <strong>{uploadAcademicYear} — {uploadYear} — {uploadSection}</strong>
               &nbsp;·&nbsp; <span style={{ color: "#34d399" }}>{previewStudents.length} student{previewStudents.length !== 1 ? "s" : ""} parsed</span>
             </div>
 

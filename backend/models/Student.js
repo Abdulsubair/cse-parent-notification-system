@@ -46,6 +46,12 @@ const studentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    academicYear: {
+      type: String,
+      trim: true,
+      default: "2026-2027",
+    },
+
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Parent",
