@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import "./AuthPages.css";
 
 function StaffLoginPage({ onLogin, onBack }) {
-  const [username, setUsername] = useState("staff_cse");
-  const [password, setPassword] = useState("Staff@2026");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -63,10 +63,7 @@ function StaffLoginPage({ onLogin, onBack }) {
           </button>
         </form>
 
-        <div className="demo-hint-box">
-          <span>🔑 Default Staff Login Credentials:</span>
-          <code>Username: staff_cse | Password: Staff@2026</code>
-        </div>
+
       </div>
     </div>
   );

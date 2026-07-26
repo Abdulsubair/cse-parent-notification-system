@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import "./AuthPages.css";
 
 function HODLoginPage({ onLogin, onBack }) {
-  const [username, setUsername] = useState("hod_cse");
-  const [password, setPassword] = useState("HOD@2026");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -63,10 +63,6 @@ function HODLoginPage({ onLogin, onBack }) {
           </button>
         </form>
 
-        <div className="demo-hint-box hod-hint">
-          <span>🔑 Default HOD Login Credentials:</span>
-          <code>Username: hod_cse | Password: HOD@2026</code>
-        </div>
       </div>
     </div>
   );
