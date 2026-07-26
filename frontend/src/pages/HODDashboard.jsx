@@ -66,6 +66,14 @@ function HODDashboard({ user, token, onLogout }) {
   const [studentFilterSection, setStudentFilterSection] = useState("");
 
   // Helper: auto-logout on expired/invalid token (fires only once across all concurrent calls)
+  // Guard: never display a phone number in a parent name field
+  const safeParentName = (val) => {
+    if (!val) return "Parent";
+    const digits = String(val).replace(/\D/g, "");
+    if (digits.length >= 8 && /^\d[\d\s\-+().]{6,}$/.test(String(val).trim())) return "Parent";
+    return val;
+  };
+
   const authFetch = async (url, options = {}) => {
     const res = await fetch(url, {
       ...options,
@@ -1036,7 +1044,7 @@ function HODDashboard({ user, token, onLogout }) {
                             <td><code>{st.registerNumber}</code></td>
                             <td><strong>{st.name}</strong></td>
                             <td>{st.year} - {st.section}</td>
-                            <td>{st.parentId?.name || "Parent"}</td>
+                            <td>{safeParentName(st.parentId?.name)}</td>
                             <td>📱 {st.parentId?.mobileNumber || st.phone}</td>
                             <td style={{ textAlign: "center" }}>
                               <button
@@ -1083,7 +1091,7 @@ function HODDashboard({ user, token, onLogout }) {
                     ) : (
                       students.map((st) => (
                         <tr key={st._id}>
-                          <td><strong>{st.parentId?.name || "Parent"}</strong></td>
+                          <td><strong>{safeParentName(st.parentId?.name)}</strong></td>
                           <td>{st.parentId?.relationship || "Father"}</td>
                           <td>📱 {st.parentId?.mobileNumber || "N/A"}</td>
                           <td>💬 {st.parentId?.whatsappNumber || st.parentId?.mobileNumber || "N/A"}</td>

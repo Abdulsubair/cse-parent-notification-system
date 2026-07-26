@@ -271,7 +271,11 @@ router.post("/students/bulk", roleMiddleware(["hod"]), async (req, res) => {
 
       const regNumStr = String(rec.registerNumber).trim();
       const studentNameStr = String(rec.name).trim();
-      const parentNameStr = rec.parentName ? String(rec.parentName).trim() : "Parent";
+
+      // Never store a phone number as the parent name
+      const isPhoneStr = (v) => typeof v === "string" && v.replace(/\D/g, "").length >= 8 && /^\d[\d\s\-+().]{6,}$/.test(v.trim());
+      const rawParentName = rec.parentName ? String(rec.parentName).trim() : "";
+      const parentNameStr = rawParentName && !isPhoneStr(rawParentName) ? rawParentName : "Parent";
 
       let cleanedMobile = String(rec.mobileNumber).replace(/\D/g, "");
       if (cleanedMobile.length > 10) cleanedMobile = cleanedMobile.slice(-10);

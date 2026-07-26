@@ -113,6 +113,14 @@ function StaffPage({ user, token, onLogout }) {
     setAttendance(updated);
   };
 
+  // Guard: never display a phone number in a parent name field
+  const safeParentName = (val) => {
+    if (!val) return "Parent";
+    const digits = String(val).replace(/\D/g, "");
+    if (digits.length >= 8 && /^\d[\d\s\-+().]{6,}$/.test(String(val).trim())) return "Parent";
+    return val;
+  };
+
   // Compute live statistics
   const totalCount = students.length;
   const presentCount = Object.values(attendance).filter((st) => st === "Present").length;
@@ -331,7 +339,7 @@ function StaffPage({ user, token, onLogout }) {
         .map((st) => ({
           studentName: st.name,
           registerNumber: st.registerNumber,
-          parentName: st.parentId?.name || "Parent",
+          parentName: safeParentName(st.parentId?.name),
           parentMobile: st.parentId?.mobileNumber || st.phone || "9876543210",
         }));
 
@@ -478,7 +486,7 @@ function StaffPage({ user, token, onLogout }) {
                         </td>
                         <td>
                           <div className="parent-info">
-                            <span>{student.parentId?.name || "Parent"}</span>
+                            <span>{safeParentName(student.parentId?.name)}</span>
                             <small>📱 {student.parentId?.mobileNumber || student.phone}</small>
                           </div>
                         </td>
