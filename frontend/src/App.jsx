@@ -45,6 +45,27 @@ function App() {
     }
   }, [user, token]);
 
+  // ── Browser back-button fix ───────────────────────────────────────────────
+  // When user navigates into a login page, push a history entry so the browser
+  // back button fires a popstate event we can intercept — keeping the user on
+  // our site instead of going to the previous external page (e.g. Google).
+  useEffect(() => {
+    if (currentView === "staff-login" || currentView === "hod-login") {
+      // Push a dummy state so there's something to "go back" to within our app
+      window.history.pushState({ view: currentView }, "");
+    }
+  }, [currentView]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      // Whenever browser back is pressed while on a login page, return to landing
+      setCurrentView("landing");
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const handleLogin = async ({ username, password }) => {
     let response;
     try {
