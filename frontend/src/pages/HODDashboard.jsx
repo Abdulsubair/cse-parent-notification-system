@@ -702,6 +702,7 @@ function HODDashboard({ user, token, onLogout }) {
         <main className="hod-main-content">
           {/* TAB 1: SUMMARY */}
           {activeTab === "summary" && (
+            <div className="tab-pane">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem" }}>
                 <h3 style={{ margin: 0 }}>📈 Department Absence Notification Overview</h3>
                 <button
@@ -717,7 +718,7 @@ function HODDashboard({ user, token, onLogout }) {
                 <div className="summary-card card-total">
                   <span>Total Notifications Dispatched</span>
                   <strong>{summary?.totalMessages ?? logs.length}</strong>
-                  <small>SMS & WhatsApp alerts</small>
+                  <small>SMS alerts</small>
                 </div>
                 <div className="summary-card card-success">
                   <span>Successful Deliveries</span>
@@ -737,12 +738,11 @@ function HODDashboard({ user, token, onLogout }) {
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>Date & Time</th>
+                        <th>Date &amp; Time</th>
                         <th>Student Name</th>
                         <th>Class</th>
                         <th>Parent Contact</th>
                         <th>SMS Status</th>
-                        <th>WhatsApp Status</th>
                         <th>Overall</th>
                       </tr>
                     </thead>
@@ -761,12 +761,6 @@ function HODDashboard({ user, token, onLogout }) {
                             log.sms?.status === 'FAILED' ? 'badge-danger' :
                             'badge-info'
                           }`}>{log.sms?.status || 'PENDING'}</span></td>
-                          <td><span className={`badge ${
-                            log.whatsapp?.status === 'SENT' || log.whatsapp?.status === 'DELIVERED' || log.whatsapp?.status === 'READ' ? 'badge-success' :
-                            log.whatsapp?.status === 'FAILED' ? 'badge-danger' :
-                            log.whatsapp?.status === 'DISABLED' ? 'badge-info' :
-                            'badge-info'
-                          }`}>{log.whatsapp?.status || 'N/A'}</span></td>
                           <td><span className={`badge ${
                             log.overallStatus === 'SUCCESS' ? 'badge-emerald' :
                             log.overallStatus === 'FAILED' ? 'badge-danger' :
@@ -1135,6 +1129,8 @@ function HODDashboard({ user, token, onLogout }) {
           )}
 
           {/* TAB 7: MESSAGE DELIVERY LOGS */}
+          {activeTab === "messages" && (
+            <div className="tab-pane">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem" }}>
                 <h3 style={{ margin: 0 }}>📱 Complete Message Delivery Logs</h3>
                 <button
