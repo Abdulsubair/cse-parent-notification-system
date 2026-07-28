@@ -130,7 +130,8 @@ const sendFast2SMS = async (mobileNumber, message) => {
 };
 
 /**
- * Send SMS wrapper function
+ * Send SMS automatically via Fast2SMS API
+ * SMS is dispatched immediately when attendance is submitted — no buttons, no manual steps.
  */
 const sendSms = async (mobileNumber, message) => {
   if (!mobileNumber) {
@@ -141,16 +142,37 @@ const sendSms = async (mobileNumber, message) => {
   }
 
   const cleanedNumber = String(mobileNumber).replace(/\D/g, "").slice(-10);
-  console.log("Built-In Zero-Cost SMS Engine processing parent number:", cleanedNumber);
 
-  // Instant Built-In Zero-Cost Direct Messaging Engine (100% Free, 0 Paid Gateway Charges)
-  return {
-    status: "DELIVERED",
-    mobileNumber: cleanedNumber,
-    messageId: `SMS_FREE_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`,
-    sentAt: new Date(),
-    deliveredAt: new Date(),
-  };
+  if (cleanedNumber.length !== 10) {
+    console.error("Invalid mobile number (must be 10 digits):", mobileNumber);
+    return {
+      status: "FAILED",
+      mobileNumber: cleanedNumber,
+      error: "Invalid 10-digit Indian mobile number",
+    };
+  }
+
+  console.log("Sending SMS via Fast2SMS API to:", cleanedNumber);
+
+  // Send via Fast2SMS API automatically
+  const result = await sendFast2SMS(cleanedNumber, message);
+
+  if (result.success) {
+    console.log("✅ Fast2SMS API sent successfully. Request ID:", result.messageId);
+    return {
+      status: "SENT",
+      mobileNumber: cleanedNumber,
+      messageId: result.messageId,
+      sentAt: new Date(),
+    };
+  } else {
+    console.error("❌ Fast2SMS API failed:", result.error);
+    return {
+      status: "FAILED",
+      mobileNumber: cleanedNumber,
+      error: result.error,
+    };
+  }
 };
 
 /**
