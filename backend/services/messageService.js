@@ -1,13 +1,38 @@
-const { MessageTemplate, MessageLog } = require("../models");
+const { MessageLog } = require("../models");
 const axios = require("axios");
 
-const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
-const FAST2SMS_SENDER_ID = process.env.FAST2SMS_SENDER_ID || "FSTSMS";
+// ─────────────────────────────────────────────────────────────────────────────
+// Android SMS Gateway Configuration
+//
+// HOW TO SET UP (100% FREE — uses your Android phone's SIM card):
+//
+//   1. Install "Android SMS Gateway" from Play Store on a college Android phone:
+//      https://play.google.com/store/apps/details?id=me.capcom.smsgateway
+//
+//   2. Open the app → tap the power button to START the server.
+//      The app shows your phone's local IP address and port (e.g. http://192.168.1.5:8080).
+//
+//   3. Note the login credentials shown in the app (default: admin / admin).
+//
+//   4. Set these in your backend/.env file:
+//      ANDROID_SMS_GATEWAY_URL=http://192.168.1.5:8080
+//      ANDROID_SMS_GATEWAY_USER=admin
+//      ANDROID_SMS_GATEWAY_PASS=admin
+//
+//   5. Make sure the college server (Render) can reach the phone's IP.
+//      For cloud deployments, use a tool like ngrok on the phone's network:
+//      ngrok http 8080  → then set ANDROID_SMS_GATEWAY_URL=https://xxxx.ngrok.io
+//
+// ─────────────────────────────────────────────────────────────────────────────
 
-const fast2smsConfigured = Boolean(FAST2SMS_API_KEY);
+const ANDROID_SMS_GATEWAY_URL = process.env.ANDROID_SMS_GATEWAY_URL;
+const ANDROID_SMS_GATEWAY_USER = process.env.ANDROID_SMS_GATEWAY_USER || "admin";
+const ANDROID_SMS_GATEWAY_PASS = process.env.ANDROID_SMS_GATEWAY_PASS || "admin";
+
+const androidGatewayConfigured = Boolean(ANDROID_SMS_GATEWAY_URL);
 
 /**
- * Helper to format date into DD-MM-YYYY format for SMS (e.g. 28-07-2026)
+ * Format a date into DD-MM-YYYY for the SMS body
  */
 const formatDate = (dateVal) => {
   let d;
@@ -17,277 +42,192 @@ const formatDate = (dateVal) => {
     d = dateVal;
   } else {
     d = new Date(dateVal);
-    if (isNaN(d.getTime())) {
-      return String(dateVal);
-    }
+    if (isNaN(d.getTime())) return String(dateVal);
   }
-  const day = String(d.getDate()).padStart(2, "0");
+  const day   = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
+  const year  = d.getFullYear();
   return `${day}-${month}-${year}`;
 };
 
 /**
- * Renders the English and Tamil message body for an absent student
+ * Build the dual-language (English + Tamil) SMS body for an absent student
  */
 const renderDualMessage = (studentName, gender, dateInput) => {
   const formattedDate = formatDate(dateInput);
   let childTerm = "son/daughter";
-
-  if (gender === "Male") {
-    childTerm = "son";
-  } else if (gender === "Female") {
-    childTerm = "daughter";
-  }
+  if (gender === "Male")   childTerm = "son";
+  if (gender === "Female") childTerm = "daughter";
 
   const english = `Dear Parent, your ${childTerm} ${studentName} (CSE Dept) is absent for college today, ${formattedDate}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.`;
-  const tamil = `அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை ${studentName} (கணினி அறிவியல் துறை) இன்று (${formattedDate}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி`;
-
+  const tamil   = `அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை ${studentName} (கணினி அறிவியல் துறை) இன்று (${formattedDate}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி`;
   const combined = `${english}\n\n${tamil}`;
   return { english, tamil, combined };
 };
 
 /**
- * Send SMS using Fast2SMS API (https://www.fast2sms.com)
+ * Send one SMS via the Android SMS Gateway running on the college's Android phone.
+ * This uses the phone's own SIM card — completely free, no third-party API charges.
+ *
+ * API docs: https://docs.sms-gateway.app/api-reference/messages/send-message/
  */
-const sendFast2SMS = async (mobileNumber, message) => {
-  if (!fast2smsConfigured) {
-    console.log("Fast2SMS is not configured");
+const sendSmsViaAndroidGateway = async (mobileNumber, message) => {
+  if (!androidGatewayConfigured) {
+    console.warn("Android SMS Gateway is not configured (ANDROID_SMS_GATEWAY_URL missing in .env)");
     return {
       success: false,
-      error: "Fast2SMS provider is not configured",
+      error: "Android SMS Gateway not configured. Set ANDROID_SMS_GATEWAY_URL in .env",
     };
   }
 
-  // Clean mobile number (keep last 10 digits only for Indian 10-digit mobile numbers)
   const cleanedNumber = String(mobileNumber).replace(/\D/g, "").slice(-10);
 
   if (cleanedNumber.length !== 10) {
-    console.error("Invalid mobile number format for Fast2SMS:", mobileNumber);
     return {
       success: false,
-      error: "Invalid 10-digit Indian mobile number",
+      error: `Invalid 10-digit mobile number: ${mobileNumber}`,
     };
   }
 
-  // Determine language mode: 'unicode' for Tamil characters, 'english' for pure ASCII
-  const isUnicode = /[\u0B80-\u0BFF]/.test(message);
-  const language = isUnicode ? "unicode" : "english";
+  // Android SMS Gateway expects E.164 format: +91XXXXXXXXXX for India
+  const phoneNumber = `+91${cleanedNumber}`;
 
-  console.log("Fast2SMS Request:", {
-    mobileNumber: cleanedNumber,
-    language,
-    messageLength: message.length,
-  });
+  console.log(`📲 Sending SMS via Android Gateway to ${phoneNumber}`);
 
   try {
     const response = await axios.post(
-      "https://www.fast2sms.com/dev/bulkV2",
+      `${ANDROID_SMS_GATEWAY_URL}/v1/message`,
       {
-        route: "q", // Quick SMS route
-        message: message,
-        language: language,
-        flash: 0,
-        numbers: cleanedNumber,
+        message:        message,
+        phoneNumbers:   [phoneNumber],
+        withDeliveryReport: true,
       },
       {
-        headers: {
-          authorization: FAST2SMS_API_KEY,
-          "Content-Type": "application/json",
+        auth: {
+          username: ANDROID_SMS_GATEWAY_USER,
+          password: ANDROID_SMS_GATEWAY_PASS,
         },
-        timeout: 10000,
+        headers: { "Content-Type": "application/json" },
+        timeout: 15000,
       }
     );
 
-    console.log("Fast2SMS Response:", response.data);
+    console.log("✅ Android Gateway response:", response.data);
 
-    if (response.data && response.data.return === true) {
-      return {
-        success: true,
-        messageId: response.data.request_id || (response.data.message && response.data.message[0]) || `F2SMS_${Date.now()}`,
-        response: response.data,
-      };
-    } else {
-      const errorMsg = Array.isArray(response.data?.message)
-        ? response.data.message.join(", ")
-        : (response.data?.message || "Fast2SMS request failed");
-
-      return {
-        success: false,
-        error: errorMsg,
-        details: response.data,
-      };
-    }
+    return {
+      success: true,
+      messageId: response.data?.id || `SMS_${Date.now()}`,
+      response:  response.data,
+    };
   } catch (error) {
-    const errorDetails = error.response?.data || error.message;
-    console.error("Fast2SMS API Error:", errorDetails);
+    const errDetails = error.response?.data || error.message;
+    console.error("❌ Android SMS Gateway error:", errDetails);
     return {
       success: false,
-      error: typeof errorDetails === "object" ? JSON.stringify(errorDetails) : errorDetails,
-      details: errorDetails,
+      error: typeof errDetails === "object" ? JSON.stringify(errDetails) : errDetails,
     };
   }
 };
 
 /**
- * Send SMS automatically via Fast2SMS API
- * SMS is dispatched immediately when attendance is submitted — no buttons, no manual steps.
+ * Main SMS sending function — called automatically when attendance is submitted.
+ * Uses Android SMS Gateway (free — SIM-based delivery).
  */
 const sendSms = async (mobileNumber, message) => {
   if (!mobileNumber) {
-    return {
-      status: "FAILED",
-      error: "Missing parent mobile number",
-    };
+    return { status: "FAILED", error: "Missing parent mobile number" };
   }
 
-  const cleanedNumber = String(mobileNumber).replace(/\D/g, "").slice(-10);
-
-  if (cleanedNumber.length !== 10) {
-    console.error("Invalid mobile number (must be 10 digits):", mobileNumber);
-    return {
-      status: "FAILED",
-      mobileNumber: cleanedNumber,
-      error: "Invalid 10-digit Indian mobile number",
-    };
-  }
-
-  console.log("Sending SMS via Fast2SMS API to:", cleanedNumber);
-
-  // Send via Fast2SMS API automatically
-  const result = await sendFast2SMS(cleanedNumber, message);
+  const result = await sendSmsViaAndroidGateway(mobileNumber, message);
 
   if (result.success) {
-    console.log("✅ Fast2SMS API sent successfully. Request ID:", result.messageId);
     return {
-      status: "SENT",
-      mobileNumber: cleanedNumber,
+      status:    "SENT",
+      mobileNumber: String(mobileNumber).replace(/\D/g, "").slice(-10),
       messageId: result.messageId,
-      sentAt: new Date(),
-    };
-  } else {
-    console.error("❌ Fast2SMS API failed:", result.error);
-    return {
-      status: "FAILED",
-      mobileNumber: cleanedNumber,
-      error: result.error,
-    };
-  }
-};
-
-/**
- * Send WhatsApp wrapper function (Simulator Mode)
- */
-const sendWhatsApp = async (whatsappNumber, message) => {
-  if (!whatsappNumber) {
-    return {
-      status: "NOT_AVAILABLE",
-      error: "WhatsApp number not provided",
+      sentAt:    new Date(),
     };
   }
 
   return {
-    status: "DELIVERED",
-    whatsappNumber,
-    messageId: `SIM_WA_${Math.floor(100000 + Math.random() * 900000)}`,
-    sentAt: new Date(),
-    deliveredAt: new Date(),
+    status:      "FAILED",
+    mobileNumber: String(mobileNumber).replace(/\D/g, "").slice(-10),
+    error:       result.error,
   };
 };
 
-const computeOverallStatus = (smsStatus, whatsappStatus) => {
-  const deliveredStatuses = ["SENT", "DELIVERED", "READ"];
-  const smsDelivered = deliveredStatuses.includes(smsStatus);
-  const whatsappDelivered = deliveredStatuses.includes(whatsappStatus);
-  const whatsappNotAvailable = whatsappStatus === "NOT_AVAILABLE";
-  const whatsappFailed = whatsappStatus === "FAILED";
-  const whatsappDisabled = whatsappStatus === "DISABLED";
-
-  if (smsDelivered && whatsappDelivered) return "SUCCESS";
-  if (smsDelivered && (whatsappNotAvailable || whatsappFailed || whatsappDisabled)) return "SUCCESS";
-  if (smsDelivered || whatsappDelivered) return "SUCCESS";
-  return "FAILED";
+/**
+ * Overall delivery status helper
+ */
+const computeOverallStatus = (smsStatus) => {
+  return ["SENT", "DELIVERED"].includes(smsStatus) ? "SUCCESS" : "FAILED";
 };
 
-const sendAbsenceNotifications = async ({ attendance, absentRecords, students, staffName }) => {
+/**
+ * Called by attendanceRoutes.js after attendance is submitted.
+ * Sends SMS to every absent student's parent automatically via Android phone SIM.
+ */
+const sendAbsenceNotifications = async ({ attendance, absentRecords, students }) => {
   const studentMap = new Map();
-  students.forEach((student) => {
-    studentMap.set(student._id.toString(), student);
-  });
+  students.forEach((s) => studentMap.set(s._id.toString(), s));
 
   const logs = [];
 
   for (const record of absentRecords) {
-    const student = studentMap.get(record.studentId.toString());
-    const parent = student?.parentId;
-    const studentName = student?.name || "Student";
-    const studentGender = student?.gender || "Male";
+    const student     = studentMap.get(record.studentId.toString());
+    const parent      = student?.parentId;
+    const studentName = student?.name   || "Student";
+    const gender      = student?.gender || "Male";
 
-    const { english, tamil, combined } = renderDualMessage(studentName, studentGender, attendance?.date);
+    const { english, tamil, combined } = renderDualMessage(studentName, gender, attendance?.date);
 
-    // Send SMS via Fast2SMS
+    // ── Send SMS automatically via college Android phone SIM ──
     const smsResult = await sendSms(parent?.mobileNumber || parent?.phone, combined);
 
-    const whatsappResult = { status: "DISABLED" };
+    console.log(`SMS to ${smsResult.mobileNumber}: ${smsResult.status}`);
 
-    const log = {
+    logs.push({
       attendanceId: attendance._id,
-      studentId: student?._id,
-      parentId: parent?._id,
-      messageTemplate: {
-        english,
-        tamil,
-      },
+      studentId:    student?._id,
+      parentId:     parent?._id,
+      messageTemplate: { english, tamil },
       sms: {
-        status: smsResult.status,
+        status:      smsResult.status,
         mobileNumber: smsResult.mobileNumber || parent?.mobileNumber || parent?.phone || null,
-        messageId: smsResult.messageId || null,
-        error: smsResult.error || null,
-        sentAt: smsResult.sentAt || new Date(),
-        deliveredAt: smsResult.deliveredAt || new Date(),
+        messageId:   smsResult.messageId  || null,
+        error:       smsResult.error      || null,
+        sentAt:      smsResult.sentAt     || new Date(),
+        deliveredAt: new Date(),
       },
       whatsapp: {
-        status: whatsappResult.status,
-        whatsappNumber: parent?.whatsappNumber || null,
-        messageId: whatsappResult.messageId || null,
-        error: whatsappResult.error || null,
-        sentAt: whatsappResult.sentAt || new Date(),
-        deliveredAt: whatsappResult.deliveredAt || new Date(),
+        status:         "DISABLED",
+        whatsappNumber: null,
+        messageId:      null,
+        error:          null,
+        sentAt:         new Date(),
+        deliveredAt:    new Date(),
       },
-      overallStatus: computeOverallStatus(smsResult.status, whatsappResult.status),
-      date: attendance.date,
-      year: attendance.year,
-      section: attendance.section,
-    };
-
-    logs.push(log);
+      overallStatus: computeOverallStatus(smsResult.status),
+      date:          attendance.date,
+      year:          attendance.year,
+      section:       attendance.section,
+    });
   }
 
   const createdLogs = await MessageLog.insertMany(logs);
 
-  console.log("Created message logs:", createdLogs.length);
-  createdLogs.forEach(log => {
-    console.log("Log entry:", {
-      studentId: log.studentId,
-      overallStatus: log.overallStatus,
-      smsStatus: log.sms.status,
-      whatsappStatus: log.whatsapp.status
-    });
-  });
+  console.log(`📊 Notification summary: ${createdLogs.filter(l => l.overallStatus === "SUCCESS").length}/${createdLogs.length} sent`);
 
-  const summary = {
-    total: createdLogs.length,
-    successCount: createdLogs.filter((log) => log.overallStatus === "SUCCESS").length,
-    failedCount: createdLogs.filter((log) => log.overallStatus === "FAILED").length,
-    logs: createdLogs,
+  return {
+    total:        createdLogs.length,
+    successCount: createdLogs.filter((l) => l.overallStatus === "SUCCESS").length,
+    failedCount:  createdLogs.filter((l) => l.overallStatus === "FAILED").length,
+    logs:         createdLogs,
   };
-
-  return summary;
 };
 
 module.exports = {
   renderDualMessage,
   sendAbsenceNotifications,
-  sendFast2SMS,
   sendSms,
 };
