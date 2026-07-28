@@ -349,7 +349,7 @@ function HODDashboard({ user, token, onLogout }) {
     fetchSummary();
     fetchLogs();
     fetchAllMasterData();
-  }, [token]);
+  }, [token, activeTab]);
 
   const fetchSummary = async () => {
     try {
@@ -702,8 +702,16 @@ function HODDashboard({ user, token, onLogout }) {
         <main className="hod-main-content">
           {/* TAB 1: SUMMARY */}
           {activeTab === "summary" && (
-            <div className="tab-pane">
-              <h3>📈 Department Absence Notification Overview</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem" }}>
+                <h3 style={{ margin: 0 }}>📈 Department Absence Notification Overview</h3>
+                <button
+                  className="add-btn"
+                  onClick={() => { fetchSummary(); fetchLogs(); }}
+                  style={{ padding: "0.45rem 1rem", fontSize: "0.85rem", cursor: "pointer" }}
+                >
+                  🔄 Refresh Overview
+                </button>
+              </div>
 
               <div className="summary-cards-grid">
                 <div className="summary-card card-total">
@@ -1127,9 +1135,16 @@ function HODDashboard({ user, token, onLogout }) {
           )}
 
           {/* TAB 7: MESSAGE DELIVERY LOGS */}
-          {activeTab === "messages" && (
-            <div className="tab-pane">
-              <h3>📱 Complete Message Delivery Logs</h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem" }}>
+                <h3 style={{ margin: 0 }}>📱 Complete Message Delivery Logs</h3>
+                <button
+                  className="add-btn"
+                  onClick={() => { fetchSummary(); fetchLogs(); }}
+                  style={{ padding: "0.45rem 1rem", fontSize: "0.85rem", cursor: "pointer" }}
+                >
+                  🔄 Refresh Logs
+                </button>
+              </div>
 
               {logs.length === 0 ? (
                 <div className="empty-state">

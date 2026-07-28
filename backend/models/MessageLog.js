@@ -19,7 +19,7 @@ const messageLogSchema = new mongoose.Schema(
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Parent",
-      required: true,
+      required: false,
       index: true,
     },
 
@@ -37,7 +37,7 @@ const messageLogSchema = new mongoose.Schema(
     sms: {
       status: {
         type: String,
-        enum: ["PENDING", "SENT", "DELIVERED", "FAILED"],
+        enum: ["PENDING", "SENT", "DELIVERED", "FAILED", "DISABLED", "NOT_AVAILABLE"],
         default: "PENDING",
       },
       mobileNumber: String,
@@ -50,7 +50,7 @@ const messageLogSchema = new mongoose.Schema(
     whatsapp: {
       status: {
         type: String,
-        enum: ["PENDING", "SENT", "DELIVERED", "READ", "FAILED"],
+        enum: ["PENDING", "SENT", "DELIVERED", "READ", "FAILED", "DISABLED", "NOT_AVAILABLE"],
         default: "PENDING",
       },
       whatsappNumber: String,
