@@ -1180,9 +1180,11 @@ function HODDashboard({ user, token, onLogout }) {
                               {log.overallStatus || 'PENDING'}
                             </span>
                             <div className="status-details">
-                              <small>SMS: {log.sms?.status || 'N/A'}</small>
-                              {log.whatsapp?.status && log.whatsapp?.status !== 'DISABLED' && (
-                                <small>WhatsApp: {log.whatsapp?.status}</small>
+                              <small style={{ display: "block" }}>SMS: {log.sms?.status || 'N/A'}</small>
+                              {log.sms?.error && (
+                                <small style={{ display: "block", color: "#f87171", marginTop: "0.2rem", maxWidth: "200px" }}>
+                                  ⚠️ {log.sms.error}
+                                </small>
                               )}
                             </div>
                           </td>

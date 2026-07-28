@@ -336,12 +336,19 @@ function StaffPage({ user, token, onLogout }) {
       // Collect details of absent students for immediate visual confirmation modal
       const absentStudentDetails = students
         .filter((st) => attendance[st._id] === "Absent")
-        .map((st) => ({
-          studentName: st.name,
-          registerNumber: st.registerNumber,
-          parentName: safeParentName(st.parentId?.name),
-          parentMobile: st.parentId?.mobileNumber || st.phone || "9876543210",
-        }));
+        .map((st) => {
+          const logMatch = data.notificationSummary?.logs?.find(
+            (l) => String(l.studentId) === String(st._id) || String(l.studentId?._id) === String(st._id)
+          );
+          return {
+            studentName: st.name,
+            registerNumber: st.registerNumber,
+            parentName: safeParentName(st.parentId?.name),
+            parentMobile: st.parentId?.mobileNumber || st.phone || "9876543210",
+            smsStatus: logMatch?.sms?.status || "PENDING",
+            smsError: logMatch?.sms?.error || null,
+          };
+        });
 
       setSubmissionResult({
         academicYear: selectedAcademicYear,
@@ -585,14 +592,40 @@ function StaffPage({ user, token, onLogout }) {
                     <div key={i} className="msg-preview-card">
                       <div className="preview-top">
                         <strong>Student: {st.studentName} ({st.registerNumber})</strong>
-                        <span className="dispatch-badge">🟢 SMS & WhatsApp Sent</span>
+                        <span className={`dispatch-badge ${st.smsStatus === 'SENT' || st.smsStatus === 'DELIVERED' ? '' : 'failed-badge'}`} style={{
+                          backgroundColor: st.smsStatus === 'SENT' || st.smsStatus === 'DELIVERED' ? '#059669' : '#dc2626',
+                          color: '#ffffff',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                        }}>
+                          {st.smsStatus === 'SENT' || st.smsStatus === 'DELIVERED'
+                            ? '🟢 Fast2SMS Dispatched'
+                            : '⚠️ API Error (₹100 Recharge Needed)'}
+                        </span>
                       </div>
                       <div className="parent-detail">
                         Parent: {st.parentName} (Mobile: {st.parentMobile})
                       </div>
+                      {st.smsError && (
+                        <div style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '0.4rem', borderRadius: '4px' }}>
+                          ⚠️ <strong>Fast2SMS Response:</strong> {st.smsError}
+                        </div>
+                      )}
                       <div className="preview-dual-text">
                         <p>🇬🇧 Dear Parent, your son/daughter <strong>{st.studentName}</strong> (CSE Dept) is absent for college today, {new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.</p>
                         <p className="tamil-font">🇮🇳 அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை <strong>{st.studentName}</strong> (கணினி அறிவியல் துறை) இன்று ({new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி</p>
+                      </div>
+                      <div style={{ marginTop: "0.6rem" }}>
+                        <a
+                          href={`sms:${st.parentMobile}?body=${encodeURIComponent(`Dear Parent, your son/daughter ${st.studentName} (CSE Dept) is absent for college today, ${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.\n\nஅன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை ${st.studentName} (கணினி அறிவியல் துறை) இன்று (${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி`)}`}
+                          className="add-btn"
+                          style={{ textDecoration: "none", fontSize: "0.8rem", padding: "0.4rem 0.8rem", backgroundColor: "#2563eb", display: "inline-block" }}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          📱 Send via Mobile Phone SIM (Free Fallback)
+                        </a>
                       </div>
                     </div>
                   ))}
