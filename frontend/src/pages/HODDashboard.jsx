@@ -1156,8 +1156,8 @@ function HODDashboard({ user, token, onLogout }) {
                           <td>{log.year} - {log.section}</td>
                           <td>{log.parentId?.name} (📱 {log.sms?.mobileNumber})</td>
                           <td className="msg-cell">
-                            <div>🇬🇧 {log.messageTemplate?.english || `Dear Parents, Your Son/Daughter ${log.studentId?.name} has not attended the college today.`}</div>
-                            <div className="tamil-font">🇮🇳 {log.messageTemplate?.tamil || `அன்புள்ள பெற்றோர்களே, உங்கள் மகன்/மகள் ${log.studentId?.name} இன்று கல்லூரிக்கு வரவில்லை.`}</div>
+                            <div>🇬🇧 {log.messageTemplate?.english || `Dear Parent, your son/daughter ${log.studentId?.name || "Student"} (CSE Dept) is absent for college today, ${new Date(log.date || Date.now()).toLocaleDateString('en-GB').replace(/\//g, '-')}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.`}</div>
+                            <div className="tamil-font">🇮🇳 {log.messageTemplate?.tamil || `அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை ${log.studentId?.name || "Student"} (கணினி அறிவியல் துறை) இன்று (${new Date(log.date || Date.now()).toLocaleDateString('en-GB').replace(/\//g, '-')}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி`}</div>
                           </td>
                           <td>
                             <span className={`badge ${

@@ -74,14 +74,14 @@ function LandingPage({ onSelectRole }) {
             <div className="message-lang">
               <span className="lang-flag">🇬🇧 English</span>
               <p className="msg-text">
-                Dear Parents, Your Son/Daughter <strong className="highlight">Abdul</strong> has not attended the college today.
+                Dear Parent, your son/daughter <strong className="highlight">Abdul</strong> (CSE Dept) is absent for college today, 28-07-2026. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.
               </p>
             </div>
             <div className="msg-divider"></div>
             <div className="message-lang">
               <span className="lang-flag">🇮🇳 தமிழ் (Tamil)</span>
               <p className="msg-text tamil-text">
-                அன்புள்ள பெற்றோர்களே, உங்கள் மகன்/மகள் <strong className="highlight">அப்துல்</strong> இன்று கல்லூரிக்கு வரவில்லை.
+                அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை <strong className="highlight">அப்துல்</strong> (கணினி அறிவியல் துறை) இன்று (28-07-2026) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி
               </p>
             </div>
             <div className="message-meta">
