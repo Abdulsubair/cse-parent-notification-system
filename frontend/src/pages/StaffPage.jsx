@@ -594,6 +594,26 @@ function StaffPage({ user, token, onLogout }) {
                         <p>🇬🇧 Dear Parent, your son/daughter <strong>{st.studentName}</strong> (CSE Dept) is absent for college today, {new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.</p>
                         <p className="tamil-font">🇮🇳 அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை <strong>{st.studentName}</strong> (கணினி அறிவியல் துறை) இன்று ({new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி</p>
                       </div>
+                      <div style={{ marginTop: "0.6rem", display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                        <a
+                          href={`sms:${st.parentMobile}?body=${encodeURIComponent(`Dear Parent, your son/daughter ${st.studentName} (CSE Dept) is absent for college today, ${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.\n\nஅன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை ${st.studentName} (கணினி அறிவியல் துறை) இன்று (${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி`)}`}
+                          className="add-btn"
+                          style={{ textDecoration: "none", fontSize: "0.8rem", padding: "0.35rem 0.7rem", backgroundColor: "#2563eb" }}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          📱 Open Mobile Phone SMS (Free)
+                        </a>
+                        <a
+                          href={`https://wa.me/91${String(st.parentMobile).replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(`Dear Parent, your son/daughter ${st.studentName} (CSE Dept) is absent for college today, ${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.\n\nஅன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை ${st.studentName} (கணினி அறிவியல் துறை) இன்று (${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி`)}`}
+                          className="add-btn"
+                          style={{ textDecoration: "none", fontSize: "0.8rem", padding: "0.35rem 0.7rem", backgroundColor: "#16a34a" }}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          💬 Send via WhatsApp (Free)
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
