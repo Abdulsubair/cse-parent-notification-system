@@ -179,6 +179,35 @@
 
 .badge-success { background: rgba(14, 165, 233, 0.2); color: #38bdf8; }
 .badge-emerald { background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald); }
+.badge-danger { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.badge-info { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+
+.status-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.status-details small {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.empty-state {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-state p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
 
 .inline-form {
   display: flex;

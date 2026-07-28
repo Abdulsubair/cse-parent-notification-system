@@ -31,7 +31,7 @@ console.log("Environment check:", {
   ATLAS_MONGODB_URI: !!process.env.ATLAS_MONGODB_URI,
   MONGODB_URI: !!process.env.MONGODB_URI,
   JWT_SECRET: !!process.env.JWT_SECRET,
-  TWILIO_ACCOUNT_SID: !!process.env.TWILIO_ACCOUNT_SID,
+  FAST2SMS_API_KEY: !!process.env.FAST2SMS_API_KEY,
 });
 
 let isConnected = false;

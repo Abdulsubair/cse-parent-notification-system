@@ -201,11 +201,15 @@ router.post("/submit", async (req, res) => {
         _id: { $in: absentStudentIds },
       }).populate("parentId");
 
+      console.log("Sending absence notifications for", absentRecords.length, "absent students");
+
       notificationSummary = await sendAbsenceNotifications({
         attendance,
         absentRecords,
         students: absentStudents,
       });
+
+      console.log("Notification summary:", notificationSummary);
 
       attendance.messagesSent = true;
       attendance.messageSubmittedAt = new Date();
@@ -376,6 +380,8 @@ router.get("/hod/logs", roleMiddleware(["hod"]), async (req, res) => {
 
     const skip = (Number(page) - 1) * Number(limit);
 
+    console.log("Fetching HOD logs with filters:", filters);
+
     const logs = await MessageLog.find(filters)
       .populate("studentId", "registerNumber name")
       .populate("parentId", "name mobileNumber whatsappNumber")
@@ -383,7 +389,11 @@ router.get("/hod/logs", roleMiddleware(["hod"]), async (req, res) => {
       .skip(skip)
       .limit(Number(limit));
 
+    console.log("Found logs:", logs.length);
+
     const total = await MessageLog.countDocuments(filters);
+
+    console.log("Total logs count:", total);
 
     res.json({
       logs,

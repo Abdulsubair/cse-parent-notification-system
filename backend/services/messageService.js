@@ -1,104 +1,84 @@
 const { MessageTemplate, MessageLog } = require("../models");
 const axios = require("axios");
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_SMS_FROM = process.env.TWILIO_SMS_FROM;
-const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM;
-
 const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
 const FAST2SMS_SENDER_ID = process.env.FAST2SMS_SENDER_ID || "FSTSMS";
-
-const twilioConfigured = Boolean(
-  TWILIO_ACCOUNT_SID &&
-    TWILIO_AUTH_TOKEN &&
-    (TWILIO_SMS_FROM || TWILIO_WHATSAPP_FROM)
-);
 
 const fast2smsConfigured = Boolean(FAST2SMS_API_KEY);
 
 /**
+ * Helper to format date into DD-MM-YYYY format for SMS (e.g. 28-07-2026)
+ */
+const formatDate = (dateVal) => {
+  let d;
+  if (!dateVal) {
+    d = new Date();
+  } else if (dateVal instanceof Date) {
+    d = dateVal;
+  } else {
+    d = new Date(dateVal);
+    if (isNaN(d.getTime())) {
+      return String(dateVal);
+    }
+  }
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+/**
  * Renders the English and Tamil message body for an absent student
  */
-const renderDualMessage = (studentName, gender) => {
-  let english, tamil;
+const renderDualMessage = (studentName, gender, dateInput) => {
+  const formattedDate = formatDate(dateInput);
+  let childTerm = "son/daughter";
 
   if (gender === "Male") {
-    english = `Dear Parents, Your son ${studentName} has not attended the college today.`;
-    tamil = `அன்புள்ள பெற்றோர்களே, உங்கள் மகன் ${studentName} இன்று கல்லூரிக்கு வரவில்லை.`;
+    childTerm = "son";
   } else if (gender === "Female") {
-    english = `Dear Parents, Your daughter ${studentName} has not attended the college today.`;
-    tamil = `அன்புள்ள பெற்றோர்களே, உங்கள் மகள் ${studentName} இன்று கல்லூரிக்கு வரவில்லை.`;
-  } else {
-    // Fallback if gender not specified
-    english = `Dear Parents, Your child ${studentName} has not attended the college today.`;
-    tamil = `அன்புள்ள பெற்றோர்களே, உங்கள் குழந்தை ${studentName} இன்று கல்லூரிக்கு வரவில்லை.`;
+    childTerm = "daughter";
   }
+
+  const english = `Dear Parent, your ${childTerm} ${studentName} (CSE Dept) is absent for college today, ${formattedDate}. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.`;
+  const tamil = `அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை ${studentName} (கணினி அறிவியல் துறை) இன்று (${formattedDate}) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி`;
 
   const combined = `${english}\n\n${tamil}`;
   return { english, tamil, combined };
 };
 
-const sendTwilioMessage = async (payload) => {
-  if (!twilioConfigured) {
-    return {
-      success: false,
-      error: "Twilio provider is not configured",
-    };
-  }
-
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-  const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
-  const body = new URLSearchParams(payload);
-
-  console.log("Twilio Request Payload:", payload);
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${auth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body,
-    });
-
-    const json = await response.json();
-    console.log("Twilio Response:", json);
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: json.message || "Twilio request failed",
-        details: json,
-      };
-    }
-
-    return {
-      success: true,
-      messageId: json.sid,
-      response: json,
-    };
-  } catch (error) {
-    console.error("Twilio API Error:", error);
-    return {
-      success: false,
-      error: error.message,
-      details: error,
-    };
-  }
-};
-
+/**
+ * Send SMS using Fast2SMS API (https://www.fast2sms.com)
+ */
 const sendFast2SMS = async (mobileNumber, message) => {
   if (!fast2smsConfigured) {
-    console.log("Fast2SMS not configured");
+    console.log("Fast2SMS is not configured");
     return {
       success: false,
       error: "Fast2SMS provider is not configured",
     };
   }
 
-  console.log("Fast2SMS Request:", { mobileNumber, messageLength: message.length });
+  // Clean mobile number (keep last 10 digits only for Indian 10-digit mobile numbers)
+  const cleanedNumber = String(mobileNumber).replace(/\D/g, "").slice(-10);
+
+  if (cleanedNumber.length !== 10) {
+    console.error("Invalid mobile number format for Fast2SMS:", mobileNumber);
+    return {
+      success: false,
+      error: "Invalid 10-digit Indian mobile number",
+    };
+  }
+
+  // Determine language mode: 'unicode' for Tamil characters, 'english' for pure ASCII
+  const isUnicode = /[\u0B80-\u0BFF]/.test(message);
+  const language = isUnicode ? "unicode" : "english";
+
+  console.log("Fast2SMS Request:", {
+    mobileNumber: cleanedNumber,
+    language,
+    messageLength: message.length,
+  });
 
   try {
     const response = await axios.post(
@@ -106,44 +86,52 @@ const sendFast2SMS = async (mobileNumber, message) => {
       {
         route: "q", // Quick SMS route
         message: message,
-        language: "english",
+        language: language,
         flash: 0,
-        numbers: mobileNumber,
-        sender_id: FAST2SMS_SENDER_ID,
+        numbers: cleanedNumber,
       },
       {
         headers: {
           authorization: FAST2SMS_API_KEY,
           "Content-Type": "application/json",
         },
+        timeout: 10000,
       }
     );
 
     console.log("Fast2SMS Response:", response.data);
 
-    if (response.data.return === true) {
+    if (response.data && response.data.return === true) {
       return {
         success: true,
-        messageId: response.data.request_id,
+        messageId: response.data.request_id || (response.data.message && response.data.message[0]) || `F2SMS_${Date.now()}`,
         response: response.data,
       };
     } else {
+      const errorMsg = Array.isArray(response.data?.message)
+        ? response.data.message.join(", ")
+        : (response.data?.message || "Fast2SMS request failed");
+
       return {
         success: false,
-        error: response.data.message || "Fast2SMS request failed",
+        error: errorMsg,
         details: response.data,
       };
     }
   } catch (error) {
-    console.error("Fast2SMS Error:", error.response?.data || error.message);
+    const errorDetails = error.response?.data || error.message;
+    console.error("Fast2SMS API Error:", errorDetails);
     return {
       success: false,
-      error: error.message,
-      details: error.response?.data,
+      error: typeof errorDetails === "object" ? JSON.stringify(errorDetails) : errorDetails,
+      details: errorDetails,
     };
   }
 };
 
+/**
+ * Send SMS wrapper function
+ */
 const sendSms = async (mobileNumber, message) => {
   if (!mobileNumber) {
     return {
@@ -152,65 +140,47 @@ const sendSms = async (mobileNumber, message) => {
     };
   }
 
-  console.log("Attempting SMS to:", mobileNumber);
+  const cleanedNumber = String(mobileNumber).replace(/\D/g, "").slice(-10);
+  console.log("Attempting SMS to:", cleanedNumber);
 
-  // PRIMARY: Use Fast2SMS — shows "KCEENG" as sender name (India-friendly)
+  // Send via Fast2SMS if configured
   if (fast2smsConfigured) {
-    console.log("Using Fast2SMS for SMS");
-    const result = await sendFast2SMS(mobileNumber, message);
-    if (!result.success) {
-      console.log("Fast2SMS failed, falling back to Twilio:", result.error);
-      // Fall through to Twilio below
-    } else {
+    console.log("Using Fast2SMS gateway");
+    const result = await sendFast2SMS(cleanedNumber, message);
+
+    if (result.success) {
       console.log("Fast2SMS success:", result.messageId);
       return {
         status: "SENT",
-        mobileNumber,
+        mobileNumber: cleanedNumber,
         messageId: result.messageId,
         sentAt: new Date(),
       };
-    }
-  }
-
-  // FALLBACK: Use Twilio if Fast2SMS is not configured or failed
-  if (TWILIO_SMS_FROM && twilioConfigured) {
-    console.log("Using Twilio for SMS (fallback)");
-    const payload = {
-      To: `+91${mobileNumber}`,
-      From: TWILIO_SMS_FROM,
-      Body: message,
-    };
-    const result = await sendTwilioMessage(payload);
-    if (!result.success) {
-      console.log("Twilio SMS failed:", result.error);
+    } else {
+      console.log("Fast2SMS failed:", result.error);
       return {
         status: "FAILED",
-        mobileNumber,
+        mobileNumber: cleanedNumber,
         error: result.error,
       };
     }
-    console.log("Twilio SMS success:", result.messageId);
-    return {
-      status: "SENT",
-      mobileNumber,
-      messageId: result.messageId,
-      sentAt: new Date(),
-    };
   }
 
-  // Last resort: Simulator Mode for testing
-  console.log("Using simulator mode");
+  // Simulator Mode fallback for local testing when FAST2SMS_API_KEY is not set
+  console.log("Fast2SMS API Key not configured — running in Simulator mode");
   return {
     status: "DELIVERED",
-    mobileNumber,
+    mobileNumber: cleanedNumber,
     messageId: `SIM_SMS_${Math.floor(100000 + Math.random() * 900000)}`,
     sentAt: new Date(),
     deliveredAt: new Date(),
   };
 };
 
+/**
+ * Send WhatsApp wrapper function (Simulator Mode)
+ */
 const sendWhatsApp = async (whatsappNumber, message) => {
-  // If no WhatsApp number, return appropriate status
   if (!whatsappNumber) {
     return {
       status: "NOT_AVAILABLE",
@@ -218,29 +188,6 @@ const sendWhatsApp = async (whatsappNumber, message) => {
     };
   }
 
-  if (TWILIO_WHATSAPP_FROM && twilioConfigured) {
-    const payload = {
-      To: `whatsapp:+91${whatsappNumber}`,
-      From: TWILIO_WHATSAPP_FROM,
-      Body: message,
-    };
-    const result = await sendTwilioMessage(payload);
-    if (!result.success) {
-      return {
-        status: "FAILED",
-        whatsappNumber,
-        error: result.error,
-      };
-    }
-    return {
-      status: "SENT",
-      whatsappNumber,
-      messageId: result.messageId,
-      sentAt: new Date(),
-    };
-  }
-
-  // Fallback to local high-fidelity Simulator Mode
   return {
     status: "DELIVERED",
     whatsappNumber,
@@ -258,8 +205,8 @@ const computeOverallStatus = (smsStatus, whatsappStatus) => {
   const whatsappFailed = whatsappStatus === "FAILED";
   const whatsappDisabled = whatsappStatus === "DISABLED";
 
-  if (smsDelivered && whatsappDelivered) return "SMS_AND_WHATSAPP_SENT";
-  if (smsDelivered && (whatsappNotAvailable || whatsappFailed || whatsappDisabled)) return "SMS_SENT_ONLY";
+  if (smsDelivered && whatsappDelivered) return "SUCCESS";
+  if (smsDelivered && (whatsappNotAvailable || whatsappFailed || whatsappDisabled)) return "SUCCESS";
   if (smsDelivered || whatsappDelivered) return "SUCCESS";
   return "FAILED";
 };
@@ -276,18 +223,14 @@ const sendAbsenceNotifications = async ({ attendance, absentRecords, students, s
     const student = studentMap.get(record.studentId.toString());
     const parent = student?.parentId;
     const studentName = student?.name || "Student";
-    const studentGender = student?.gender || "Male"; // Default to Male if not specified
+    const studentGender = student?.gender || "Male";
 
-    const { english, tamil, combined } = renderDualMessage(studentName, studentGender);
+    const { english, tamil, combined } = renderDualMessage(studentName, studentGender, attendance?.date);
 
-    // Always send SMS to mobile number
+    // Send SMS via Fast2SMS
     const smsResult = await sendSms(parent?.mobileNumber || parent?.phone, combined);
 
-    // WhatsApp disabled temporarily due to sandbox configuration issues
-    // Uncomment when Twilio WhatsApp sandbox is properly configured
     const whatsappResult = { status: "DISABLED" };
-    // const hasWhatsApp = parent?.whatsappNumber && parent.whatsappNumber.length > 0;
-    // const whatsappResult = await sendWhatsApp(hasWhatsApp ? parent.whatsappNumber : null, combined);
 
     const log = {
       attendanceId: attendance._id,
@@ -299,7 +242,7 @@ const sendAbsenceNotifications = async ({ attendance, absentRecords, students, s
       },
       sms: {
         status: smsResult.status,
-        mobileNumber: parent?.mobileNumber || parent?.phone || null,
+        mobileNumber: smsResult.mobileNumber || parent?.mobileNumber || parent?.phone || null,
         messageId: smsResult.messageId || null,
         error: smsResult.error || null,
         sentAt: smsResult.sentAt || new Date(),
@@ -307,7 +250,7 @@ const sendAbsenceNotifications = async ({ attendance, absentRecords, students, s
       },
       whatsapp: {
         status: whatsappResult.status,
-        whatsappNumber: hasWhatsApp ? parent.whatsappNumber : null,
+        whatsappNumber: parent?.whatsappNumber || null,
         messageId: whatsappResult.messageId || null,
         error: whatsappResult.error || null,
         sentAt: whatsappResult.sentAt || new Date(),
@@ -324,6 +267,16 @@ const sendAbsenceNotifications = async ({ attendance, absentRecords, students, s
 
   const createdLogs = await MessageLog.insertMany(logs);
 
+  console.log("Created message logs:", createdLogs.length);
+  createdLogs.forEach(log => {
+    console.log("Log entry:", {
+      studentId: log.studentId,
+      overallStatus: log.overallStatus,
+      smsStatus: log.sms.status,
+      whatsappStatus: log.whatsapp.status
+    });
+  });
+
   const summary = {
     total: createdLogs.length,
     successCount: createdLogs.filter((log) => log.overallStatus === "SUCCESS").length,
@@ -337,4 +290,6 @@ const sendAbsenceNotifications = async ({ attendance, absentRecords, students, s
 module.exports = {
   renderDualMessage,
   sendAbsenceNotifications,
+  sendFast2SMS,
+  sendSms,
 };

@@ -290,9 +290,9 @@ Week 4:
 - **Hosting**: MongoDB Atlas (Cloud)
 - **ORM**: Mongoose 9.0.0
 
-### Providers (To be integrated)
-- **SMS**: Twilio or AWS SNS
-- **WhatsApp**: Twilio or Meta Business API
+### Providers (Integrated)
+- **SMS**: Fast2SMS (India SMS Gateway API)
+- **WhatsApp**: Simulator Mode
 
 ---
 

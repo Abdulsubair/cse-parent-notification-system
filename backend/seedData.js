@@ -460,9 +460,9 @@ const sampleMessageTemplates = [
     name: "Absence Notification",
     description: "Default absence notification template",
     english:
-      "Dear Parents,\n\nYour Son/Daughter [Student Name] has not attended the college today ([Date]).\n\nPlease contact the college if you have any concerns.\n\nRegards,\nCSE Department\nKing's College of Engineering",
+      "Dear Parent, your son/daughter [Student Name] (CSE Dept) is absent for college today, [Date]. Please contact the CSE Head of Department (HOD) immediately. – Kings College of Engineering.",
     tamil:
-      "அன்புள்ள பெற்றோர்களே,\n\nஉங்கள் மகன்/மகள் [மாணவர் பெயர்] இன்று ([தேதி]) கல்லூரிக்கு வரவில்லை.\n\nஏதேனும் சந்தேகம் இருந்தால் கல்லூரிக்கு தொடர்பு கொள்க.\n\nவணக்கம்,\nCSE பிரிவு\nகிங்ஸ் கல்லூரி ஆஸ்தான",
+      "அன்புள்ள பெற்றோருக்கு, உங்கள் பிள்ளை [மாணவர் பெயர்] (கணினி அறிவியல் துறை) இன்று ([தேதி]) கல்லூரிக்கு வரவில்லை. உடனடியாக துறைத் தலைவரை (HOD) தொடர்பு கொள்ளவும். – கிங்ஸ் பொறியியல் கல்லூரி",
     type: "Absence",
     isActive: true,
     isDefault: true,

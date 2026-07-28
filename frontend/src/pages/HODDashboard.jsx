@@ -365,10 +365,17 @@ function HODDashboard({ user, token, onLogout }) {
 
   const fetchLogs = async () => {
     try {
+      console.log("Fetching HOD logs...");
       const res = await authFetch(`${API_BASE}/api/attendance/hod/logs?limit=50`);
+      console.log("Logs response status:", res.status);
       if (res.ok) {
         const data = await res.json();
+        console.log("Logs data received:", data);
         setLogs(data.logs || []);
+        console.log("Logs set to state:", data.logs?.length || 0);
+      } else {
+        const errorData = await res.json();
+        console.error("Logs API error:", errorData);
       }
     } catch (err) {
       if (err.message !== "Session expired") console.error("Logs error:", err);
@@ -741,9 +748,23 @@ function HODDashboard({ user, token, onLogout }) {
                           </td>
                           <td>{log.year} - {log.section}</td>
                           <td>{log.parentId?.name} (📱 {log.sms?.mobileNumber})</td>
-                          <td><span className="badge badge-success">{log.sms?.status || "DELIVERED"}</span></td>
-                          <td><span className="badge badge-success">{log.whatsapp?.status || "DELIVERED"}</span></td>
-                          <td><span className="badge badge-emerald">{log.overallStatus || "SUCCESS"}</span></td>
+                          <td><span className={`badge ${
+                            log.sms?.status === 'SENT' || log.sms?.status === 'DELIVERED' ? 'badge-success' :
+                            log.sms?.status === 'FAILED' ? 'badge-danger' :
+                            'badge-info'
+                          }`}>{log.sms?.status || 'PENDING'}</span></td>
+                          <td><span className={`badge ${
+                            log.whatsapp?.status === 'SENT' || log.whatsapp?.status === 'DELIVERED' || log.whatsapp?.status === 'READ' ? 'badge-success' :
+                            log.whatsapp?.status === 'FAILED' ? 'badge-danger' :
+                            log.whatsapp?.status === 'DISABLED' ? 'badge-info' :
+                            'badge-info'
+                          }`}>{log.whatsapp?.status || 'N/A'}</span></td>
+                          <td><span className={`badge ${
+                            log.overallStatus === 'SUCCESS' ? 'badge-emerald' :
+                            log.overallStatus === 'FAILED' ? 'badge-danger' :
+                            log.overallStatus === 'PARTIAL' ? 'badge-warning' :
+                            'badge-info'
+                          }`}>{log.overallStatus || 'PENDING'}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1110,37 +1131,56 @@ function HODDashboard({ user, token, onLogout }) {
             <div className="tab-pane">
               <h3>📱 Complete Message Delivery Logs</h3>
 
-              <div className="table-responsive">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Timestamp</th>
-                      <th>Student</th>
-                      <th>Class</th>
-                      <th>Parent Contact</th>
-                      <th>Dual Message Text</th>
-                      <th>Delivery Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.map((log) => (
-                      <tr key={log._id}>
-                        <td>{new Date(log.createdAt || log.date).toLocaleString()}</td>
-                        <td><strong>{log.studentId?.name}</strong></td>
-                        <td>{log.year} - {log.section}</td>
-                        <td>{log.parentId?.name} (📱 {log.sms?.mobileNumber})</td>
-                        <td className="msg-cell">
-                          <div>🇬🇧 {log.messageTemplate?.english || `Dear Parents, Your Son/Daughter ${log.studentId?.name} has not attended the college today.`}</div>
-                          <div className="tamil-font">🇮🇳 {log.messageTemplate?.tamil || `அன்புள்ள பெற்றோர்களே, உங்கள் மகன்/மகள் ${log.studentId?.name} இன்று கல்லூரிக்கு வரவில்லை.`}</div>
-                        </td>
-                        <td>
-                          <span className="badge badge-emerald">SENT & DELIVERED</span>
-                        </td>
+              {logs.length === 0 ? (
+                <div className="empty-state">
+                  <p>No message delivery logs found. Logs will appear here when staff mark attendance as absent and submit.</p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Timestamp</th>
+                        <th>Student</th>
+                        <th>Class</th>
+                        <th>Parent Contact</th>
+                        <th>Dual Message Text</th>
+                        <th>Delivery Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {logs.map((log) => (
+                        <tr key={log._id}>
+                          <td>{new Date(log.createdAt || log.date).toLocaleString()}</td>
+                          <td><strong>{log.studentId?.name}</strong></td>
+                          <td>{log.year} - {log.section}</td>
+                          <td>{log.parentId?.name} (📱 {log.sms?.mobileNumber})</td>
+                          <td className="msg-cell">
+                            <div>🇬🇧 {log.messageTemplate?.english || `Dear Parents, Your Son/Daughter ${log.studentId?.name} has not attended the college today.`}</div>
+                            <div className="tamil-font">🇮🇳 {log.messageTemplate?.tamil || `அன்புள்ள பெற்றோர்களே, உங்கள் மகன்/மகள் ${log.studentId?.name} இன்று கல்லூரிக்கு வரவில்லை.`}</div>
+                          </td>
+                          <td>
+                            <span className={`badge ${
+                              log.overallStatus === 'SUCCESS' ? 'badge-emerald' :
+                              log.overallStatus === 'FAILED' ? 'badge-danger' :
+                              log.overallStatus === 'PARTIAL' ? 'badge-warning' :
+                              'badge-info'
+                            }`}>
+                              {log.overallStatus || 'PENDING'}
+                            </span>
+                            <div className="status-details">
+                              <small>SMS: {log.sms?.status || 'N/A'}</small>
+                              {log.whatsapp?.status && log.whatsapp?.status !== 'DISABLED' && (
+                                <small>WhatsApp: {log.whatsapp?.status}</small>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </main>
