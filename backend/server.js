@@ -31,7 +31,7 @@ console.log("Environment check:", {
   ATLAS_MONGODB_URI: !!process.env.ATLAS_MONGODB_URI,
   MONGODB_URI: !!process.env.MONGODB_URI,
   JWT_SECRET: !!process.env.JWT_SECRET,
-  ANDROID_SMS_GATEWAY_URL: !!process.env.ANDROID_SMS_GATEWAY_URL,
+  FAST2SMS_API_KEY: !!process.env.FAST2SMS_API_KEY,
 });
 
 let isConnected = false;
